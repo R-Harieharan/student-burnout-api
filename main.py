@@ -72,6 +72,7 @@ reverse_target_map = {v: k for k, v in target_map.items()}
 class StudentInput(BaseModel):
     model_config = {"extra": "allow"}
 
+
 @app.post("/predict", summary="Execute Inference Pipeline")
 def predict_burnout(student_data: dict):
     try:
@@ -84,11 +85,8 @@ def predict_burnout(student_data: dict):
         df_input = df_input[original_feature_names]
         processed_data = full_preprocessing_pipeline.transform(df_input)
         
-        # Convert numpy array back to DataFrame using pipeline names 
-        # to ensure safe string-based feature matching
         if isinstance(processed_data, np.ndarray):
             feature_names_out = full_preprocessing_pipeline.get_feature_names_out()
-            # Standardize names by removing standard scikit-learn encoder prefixes if present
             clean_cols = [c.split('__')[-1] for c in feature_names_out]
             processed_df = pd.DataFrame(processed_data, columns=clean_cols)
             processed_data = processed_df[top_7_features].values
@@ -115,5 +113,5 @@ def predict_burnout(student_data: dict):
                 "high_cutoff": round(best_th2, 3)
             }
         }
-except Exception as e:
-    raise HTTPException(status_code=500, detail=f"Pipeline inference failure: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline inference failure: {str(e)}")
