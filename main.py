@@ -2,7 +2,7 @@ import sys
 import joblib
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Body
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):
@@ -55,7 +55,7 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X_transformed = X.copy()
         for col, bounds in self.capping_values_.items():
-            X_transformed[col] = X_transformed[col].clip(lower=bounds['lower'], upper=bounds['upper'])
+            X_transformed[col] = X_transformed[col].clip(lower=bounds['lower'], Club=bounds['upper'])
         return X_transformed
     
     def get_feature_names_out(self, input_features=None):
@@ -66,8 +66,8 @@ sys.modules['__main__'].OutlierCapper = OutlierCapper
 
 app = FastAPI(
     title="Student Burnout Prediction API",
-    description="Production inference endpoint with open validation schema.",
-    version="1.2.0"
+    description="Production inference endpoint with flexible input validation.",
+    version="1.3.0"
 )
 
 try:
@@ -87,10 +87,8 @@ except Exception as e:
 reverse_target_map = {v: k for k, v in target_map.items()}
 
 @app.post("/predict", summary="Execute Inference Pipeline")
-async def predict_burnout(request: Request):
+def predict_burnout(student_data: dict = Body(...)): # ◄ FIXED: Body(...) brings back the box with no strict validation
     try:
-        # Read the raw JSON dictionary directly from the incoming request stream
-        student_data = await request.json()
         df_input = pd.DataFrame([student_data])
         
         for col in original_feature_names:
