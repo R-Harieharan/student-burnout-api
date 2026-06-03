@@ -23,7 +23,6 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
             X_engineered = X_engineered.drop(columns=['Student_ID'], errors='ignore')
         return X_engineered
     
-    # 🚨 FIXED: This allows the pipeline to safely track feature names dynamically
     def get_feature_names_out(self, input_features=None):
         if input_features is None:
             return np.array([])
@@ -60,7 +59,6 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
             X_transformed[col] = X_transformed[col].clip(lower=bounds['lower'], upper=bounds['upper'])
         return X_transformed
     
-    # 🚨 FIXED: Outlier capper keeps features identical, so names out match names in
     def get_feature_names_out(self, input_features=None):
         return np.array(input_features) if input_features is not None else np.array([])
 
@@ -70,7 +68,7 @@ sys.modules['__main__'].OutlierCapper = OutlierCapper
 app = FastAPI(
     title="Student Burnout Prediction API",
     description="Production inference endpoint utilizing threshold-optimized 7-feature regression.",
-    version="1.1.1"
+    version="1.1.2"
 )
 
 try:
@@ -90,13 +88,33 @@ except Exception as e:
 
 reverse_target_map = {v: k for k, v in target_map.items()}
 
+# Robust baseline input schema to map and validate client data types cleanly
 class StudentInput(BaseModel):
+    Major_Category: str
+    Year_of_Study: str
+    Primary_Use_Case: str
+    Prompt_Engineering_Skill: str
+    Institutional_Policy: str
+    Pre_Semester_GPA: float
+    Post_Semester_GPA: float
+    Traditional_Study_Hours: float
+    Weekly_GenAI_Hours: float
+    Anxiety_Score: float
+    Weekly_Usage_Hours: float
+    Paid_Subscription: int
+    Skill_Retention_Score: float
+    Tool_Diversity: float
+    Perceived_AI_Dependency: float
+    Anxiety_Level_During_Exams: float
+
     model_config = {"extra": "allow"}
 
 @app.post("/predict", summary="Execute Inference Pipeline")
-def predict_burnout(student_data: dict):
+def predict_burnout(student_data: StudentInput):
     try:
-        df_input = pd.DataFrame([student_data])
+        # Convert validated data model into standard input dictionary
+        student_dict = student_data.model_dump()
+        df_input = pd.DataFrame([student_dict])
         
         for col in original_feature_names:
             if col not in df_input.columns:
@@ -105,7 +123,6 @@ def predict_burnout(student_data: dict):
         df_input = df_input[original_feature_names]
         processed_data = full_preprocessing_pipeline.transform(df_input)
         
-        # 🚨 FIXED: Safe array decoding using the new custom tracking methods
         if isinstance(processed_data, np.ndarray):
             try:
                 feature_names_out = full_preprocessing_pipeline.get_feature_names_out()
@@ -113,7 +130,6 @@ def predict_burnout(student_data: dict):
                 processed_df = pd.DataFrame(processed_data, columns=clean_cols)
                 processed_data = processed_df[top_7_features].values
             except:
-                # Absolute fallback: If tracking array name lengths change, fallback directly to the model's 7 features shape
                 processed_data = processed_data[:, :7]
         elif isinstance(processed_data, pd.DataFrame):
             processed_data = processed_data[top_7_features].values
