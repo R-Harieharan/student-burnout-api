@@ -65,12 +65,29 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
 sys.modules['__main__'].FeatureEngineer = FeatureEngineer
 sys.modules['__main__'].OutlierCapper = OutlierCapper
 
+#   ADVANCED UI DESIGN: Custom Header Styling & Corporate Branding Layout
 app = FastAPI(
-    title="Student Burnout Prediction API",
-    description="Production inference endpoint with flexible input validation.",
-    version="1.3.2",
-    swagger_ui_parameters={"defaultModelsExpandDepth": -1} 
+    title=" STUDENT BURNOUT PREDICTION INTERACTIVE API",
+    description="""
+##  Production-Grade ML Inference Architecture
+This enterprise-ready microservice utilizes a threshold-optimized **LightGBM Regressor** pipeline to calculate student burnout risks across a highly compact 7-feature space.
+
+###  Interactive Test Instructions
+1. Click the green **POST /predict** row right below to expand the terminal interface.
+2. Click the white **Try it out** button on the far right.
+3. The server has **automatically pre-loaded a live test payload** into your text area box.
+4. Scroll down slightly and hit the blue **Execute** button to run a live cloud inference!
+
+---
+* **Model Specifications:** Pipeline Version 1.4.0 | Core Architecture: Linux Docker Container | Core Framework: FastAPI & OpenAPI 3.1*
+""",
+    version="1.4.1",
+    swagger_ui_parameters={
+        "defaultModelsExpandDepth": -1,
+        "docExpansion": "list"
+    }
 )
+
 
 try:
     model_artifacts = joblib.load('burnout_prediction_model_artifacts.joblib')
