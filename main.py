@@ -68,7 +68,8 @@ sys.modules['__main__'].OutlierCapper = OutlierCapper
 app = FastAPI(
     title="Student Burnout Prediction API",
     description="Production inference endpoint with flexible input validation.",
-    version="1.3.1"
+    version="1.3.2",
+    swagger_ui_parameters={"defaultModelsExpandDepth": -1} 
 )
 
 try:
