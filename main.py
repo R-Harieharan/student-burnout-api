@@ -55,7 +55,8 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X_transformed = X.copy()
         for col, bounds in self.capping_values_.items():
-            X_transformed[col] = X_transformed[col].clip(lower=bounds['lower'], Club=bounds['upper'])
+            # 🚨 FIXED TYPO HERE (Changed 'Club' back to 'upper')
+            X_transformed[col] = X_transformed[col].clip(lower=bounds['lower'], upper=bounds['upper'])
         return X_transformed
     
     def get_feature_names_out(self, input_features=None):
@@ -67,7 +68,7 @@ sys.modules['__main__'].OutlierCapper = OutlierCapper
 app = FastAPI(
     title="Student Burnout Prediction API",
     description="Production inference endpoint with flexible input validation.",
-    version="1.3.0"
+    version="1.3.1"
 )
 
 try:
@@ -87,7 +88,7 @@ except Exception as e:
 reverse_target_map = {v: k for k, v in target_map.items()}
 
 @app.post("/predict", summary="Execute Inference Pipeline")
-def predict_burnout(student_data: dict = Body(...)): # ◄ FIXED: Body(...) brings back the box with no strict validation
+def predict_burnout(student_data: dict = Body(...)):
     try:
         df_input = pd.DataFrame([student_data])
         
