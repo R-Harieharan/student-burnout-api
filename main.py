@@ -88,7 +88,7 @@ except Exception as e:
 
 reverse_target_map = {v: k for k, v in target_map.items()}
 
-@app.post("/predict", summary="Execute Inference Pipeline")
+@app.post("/predict", summary="Execute Inference Pipeline", responses={422: {"description": "Validation Error Disabled"}})
 def predict_burnout(student_data: dict = Body(...)):
     try:
         df_input = pd.DataFrame([student_data])
