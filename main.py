@@ -2,8 +2,7 @@ import sys
 import joblib
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):
@@ -67,8 +66,8 @@ sys.modules['__main__'].OutlierCapper = OutlierCapper
 
 app = FastAPI(
     title="Student Burnout Prediction API",
-    description="Production inference endpoint utilizing threshold-optimized 7-feature regression.",
-    version="1.1.2"
+    description="Production inference endpoint with open validation schema.",
+    version="1.2.0"
 )
 
 try:
@@ -80,7 +79,6 @@ try:
     best_th2 = model_artifacts['best_th2']
     original_feature_names = model_artifacts['original_feature_names']
     top_7_features = model_artifacts['top_7_features']
-
     print("Pipeline artifacts successfully loaded into environment.")
 except Exception as e:
     print(f"Execution halted during serialization unpacking: {str(e)}")
@@ -88,33 +86,12 @@ except Exception as e:
 
 reverse_target_map = {v: k for k, v in target_map.items()}
 
-# Robust baseline input schema to map and validate client data types cleanly
-class StudentInput(BaseModel):
-    Major_Category: str
-    Year_of_Study: str
-    Primary_Use_Case: str
-    Prompt_Engineering_Skill: str
-    Institutional_Policy: str
-    Pre_Semester_GPA: float
-    Post_Semester_GPA: float
-    Traditional_Study_Hours: float
-    Weekly_GenAI_Hours: float
-    Anxiety_Score: float
-    Weekly_Usage_Hours: float
-    Paid_Subscription: int
-    Skill_Retention_Score: float
-    Tool_Diversity: float
-    Perceived_AI_Dependency: float
-    Anxiety_Level_During_Exams: float
-
-    model_config = {"extra": "allow"}
-
 @app.post("/predict", summary="Execute Inference Pipeline")
-def predict_burnout(student_data: StudentInput):
+async def predict_burnout(request: Request):
     try:
-        # Convert validated data model into standard input dictionary
-        student_dict = student_data.model_dump()
-        df_input = pd.DataFrame([student_dict])
+        # Read the raw JSON dictionary directly from the incoming request stream
+        student_data = await request.json()
+        df_input = pd.DataFrame([student_data])
         
         for col in original_feature_names:
             if col not in df_input.columns:
