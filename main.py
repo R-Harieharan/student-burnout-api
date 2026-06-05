@@ -106,16 +106,20 @@ def predict_burnout(student_data: dict = Body(...)):
         df_input = pd.DataFrame([student_data])
 
         # === CRITICAL: Proper defaults for missing columns ===
-        categorical_cols = ['Major_Category', 'Year_of_Study', 'Primary_Use_Case', 
-                           'Prompt_Engineering_Skill', 'Tool_Diversity', 'Paid_Subscription',
-                           'Institutional_Policy', 'Anxiety_Level_During_Exams']  # Add more if needed
-
+        categorical_features = ['Major_Category', 'Year_of_Study', 'Primary_Use_Case', 
+                        'Prompt_Engineering_Skill', 'Tool_Diversity', 'Paid_Subscription', 
+                        'Institutional_Policy', 'Anxiety_Level_During_Exams']
+        # You can infer numeric columns as the rest
+        numeric_features = [col for col in original_feature_names if col not in categorical_features]
+        
         for col in original_feature_names:
             if col not in df_input.columns:
-                if col in categorical_cols or col in ['Major_Category', 'Primary_Use_Case']:
-                    df_input[col] = "Unknown"          # String for encoders
+                if col in categorical_features:
+                    # Use a string the encoder expects (e.g., 'Unknown' or 'missing')
+                    df_input[col] = "Unknown" 
                 else:
-                    df_input[col] = np.nan             # Numeric columns
+                    # Use numeric NaN for numeric columns
+                    df_input[col] = np.nan
 
         # Reorder
         df_input = df_input[original_feature_names]
