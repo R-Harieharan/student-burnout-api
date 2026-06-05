@@ -108,40 +108,37 @@ reverse_target_map = {v: k for k, v in target_map.items()}
 @app.post("/predict", summary="Execute Inference Pipeline", responses={422: {"description": "Validation Error Disabled"}})
 def predict_burnout(student_data: dict = Body(...)):
     try:
-        # === STRONG NUMERIC CONVERSION ===
         df_input = pd.DataFrame([student_data])
         
-        # Force all columns to numeric
+        # === AGGRESSIVE NUMERIC CONVERSION ===
         for col in df_input.columns:
             df_input[col] = pd.to_numeric(df_input[col], errors='coerce')
         
-        # Add missing columns with NaN
+        # Add missing columns
         for col in original_feature_names:
             if col not in df_input.columns:
                 df_input[col] = np.nan
         
-        # Reorder exactly as training
         df_input = df_input[original_feature_names]
         
-        # === RUN PIPELINE ===
+        # === DEBUG: Print dtypes before pipeline ===
+        print("Input dtypes before pipeline:", df_input.dtypes.to_dict())
+        
+        # Run pipeline
         processed_data = full_preprocessing_pipeline.transform(df_input)
+        
+        print("Pipeline output shape:", processed_data.shape if hasattr(processed_data, 'shape') else type(processed_data))
         
         # Extract top 7 features safely
         if isinstance(processed_data, np.ndarray):
-            try:
-                feature_names_out = full_preprocessing_pipeline.get_feature_names_out()
-                clean_cols = [c.split('__')[-1] if '__' in c else c for c in feature_names_out]
-                processed_df = pd.DataFrame(processed_data, columns=clean_cols)
-                processed_data = processed_df[top_7_features].values
-            except:
-                processed_data = processed_data[:, :len(top_7_features)]
+            processed_data = processed_data[:, :len(top_7_features)]
         elif isinstance(processed_data, pd.DataFrame):
             processed_data = processed_data[top_7_features].values
+        else:
+            processed_data = np.array(processed_data)[:, :len(top_7_features)]
         
-        # Predict
         raw_score = float(reg_model.predict(processed_data)[0])
         
-        # Classify
         if raw_score < best_th1:
             predicted_class_id = 0
         elif raw_score < best_th2:
@@ -162,4 +159,7 @@ def predict_burnout(student_data: dict = Body(...)):
         }
         
     except Exception as e:
+        import traceback
+        error_detail = f"Pipeline inference failure: {str(e)}\n{traceback.format_exc()}"
+        print(error_detail)
         raise HTTPException(status_code=500, detail=f"Pipeline inference failure: {str(e)}")
