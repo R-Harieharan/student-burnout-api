@@ -66,12 +66,8 @@ sys.modules['__main__'].OutlierCapper = OutlierCapper
 
 app = FastAPI(
     title="STUDENT BURNOUT PREDICTION INTERACTIVE API",
-    description="""
-## Production-Grade ML Inference Architecture
-This enterprise-ready microservice utilizes a threshold-optimized **LightGBM Regressor** pipeline.
-""",
-    version="1.4.2",
-    swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "list"}
+    description="Production-Grade ML Inference",
+    version="1.4.3"
 )
 
 # Load model artifacts
@@ -84,9 +80,9 @@ try:
     best_th2 = model_artifacts['best_th2']
     original_feature_names = model_artifacts['original_feature_names']
     top_7_features = model_artifacts['top_7_features']
-    print("✅ Pipeline artifacts successfully loaded.")
+    print("✅ Model artifacts loaded successfully.")
 except Exception as e:
-    print(f"❌ Model loading failed: {str(e)}")
+    print(f"❌ Model loading failed: {e}")
     full_preprocessing_pipeline = None
     reg_model = None
     target_map = None
@@ -95,59 +91,56 @@ except Exception as e:
     original_feature_names = None
     top_7_features = None
 
-# Create reverse mapping
 reverse_target_map = {v: k for k, v in (target_map or {}).items()}
 
-# Safety conversion for thresholds
-if isinstance(best_th1, str):
-    best_th1 = float(best_th1)
-if isinstance(best_th2, str):
-    best_th2 = float(best_th2)
+# Safety for thresholds
+best_th1 = float(best_th1) if best_th1 is not None else 0.643
+best_th2 = float(best_th2) if best_th2 is not None else 1.271
 
-@app.post("/predict", summary="Execute Inference Pipeline", responses={422: {"description": "Validation Error Disabled"}})
+@app.post("/predict")
 def predict_burnout(student_data: dict = Body(...)):
     if full_preprocessing_pipeline is None or reg_model is None:
-        raise HTTPException(status_code=500, detail="Model not loaded. Check server logs.")
+        raise HTTPException(status_code=500, detail="Model not loaded.")
 
     try:
-        # Create DataFrame (preserve original dtypes)
         df_input = pd.DataFrame([student_data])
 
-        # Add missing columns
+        # === CRITICAL: Proper defaults for missing columns ===
+        categorical_cols = ['Major_Category', 'Year_of_Study', 'Primary_Use_Case', 
+                           'Prompt_Engineering_Skill', 'Tool_Diversity', 'Paid_Subscription',
+                           'Institutional_Policy', 'Anxiety_Level_During_Exams']  # Add more if needed
+
         for col in original_feature_names:
             if col not in df_input.columns:
-                df_input[col] = np.nan
+                if col in categorical_cols or col in ['Major_Category', 'Primary_Use_Case']:
+                    df_input[col] = "Unknown"          # String for encoders
+                else:
+                    df_input[col] = np.nan             # Numeric columns
 
-        # Reorder columns exactly as training
+        # Reorder
         df_input = df_input[original_feature_names]
 
-        # === RUN PIPELINE ===
+        # Run pipeline
         processed_data = full_preprocessing_pipeline.transform(df_input)
 
-        # Extract top 7 features safely
+        # Safe top-7 extraction
         if isinstance(processed_data, np.ndarray):
             try:
                 feature_names_out = full_preprocessing_pipeline.get_feature_names_out()
                 clean_cols = [c.split('__')[-1] if '__' in c else c for c in feature_names_out]
                 processed_df = pd.DataFrame(processed_data, columns=clean_cols)
                 processed_data = processed_df[top_7_features].values
-            except Exception:
+            except:
                 processed_data = processed_data[:, :len(top_7_features)]
-        elif isinstance(processed_data, pd.DataFrame):
-            processed_data = processed_df[top_7_features].values
         else:
-            processed_data = np.asarray(processed_data)[:, :len(top_7_features)]
+            processed_data = processed_data[top_7_features].values if hasattr(processed_data, 'columns') else processed_data
 
-        # Predict regression score
         raw_score = float(reg_model.predict(processed_data)[0])
 
-        # Robust thresholding
-        th1 = float(best_th1) if best_th1 is not None else 0.643
-        th2 = float(best_th2) if best_th2 is not None else 1.271
-
-        if raw_score < th1:
+        # Classify
+        if raw_score < best_th1:
             predicted_class_id = 0
-        elif raw_score < th2:
+        elif raw_score < best_th2:
             predicted_class_id = 1
         else:
             predicted_class_id = 2
@@ -159,13 +152,12 @@ def predict_burnout(student_data: dict = Body(...)):
             "raw_regression_score": round(raw_score, 4),
             "predicted_burnout_risk": risk_level,
             "applied_threshold_bounds": {
-                "low_cutoff": round(th1, 3),
-                "high_cutoff": round(th2, 3)
+                "low_cutoff": round(best_th1, 3),
+                "high_cutoff": round(best_th2, 3)
             }
         }
 
     except Exception as e:
         import traceback
-        error_detail = f"Pipeline inference failure: {str(e)}\n{traceback.format_exc()}"
-        print(error_detail)
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
