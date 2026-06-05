@@ -55,7 +55,6 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X_transformed = X.copy()
         for col, bounds in self.capping_values_.items():
-            # 🚨 FIXED TYPO HERE (Changed 'Club' back to 'upper')
             X_transformed[col] = X_transformed[col].clip(lower=bounds['lower'], upper=bounds['upper'])
         return X_transformed
     
@@ -65,30 +64,17 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
 sys.modules['__main__'].FeatureEngineer = FeatureEngineer
 sys.modules['__main__'].OutlierCapper = OutlierCapper
 
-#   ADVANCED UI DESIGN: Custom Header Styling & Corporate Branding Layout
 app = FastAPI(
-    title=" STUDENT BURNOUT PREDICTION INTERACTIVE API",
+    title="STUDENT BURNOUT PREDICTION INTERACTIVE API",
     description="""
-##  Production-Grade ML Inference Architecture
-This enterprise-ready microservice utilizes a threshold-optimized **LightGBM Regressor** pipeline to calculate student burnout risks across a highly compact 7-feature space.
-
-###  Interactive Test Instructions
-1. Click the green **POST /predict** row right below to expand the terminal interface.
-2. Click the white **Try it out** button on the far right.
-3. The server has **automatically pre-loaded a live test payload** into your text area box.
-4. Scroll down slightly and hit the blue **Execute** button to run a live cloud inference!
-
----
-* **Model Specifications:** Pipeline Version 1.4.0 | Core Architecture: Linux Docker Container | Core Framework: FastAPI & OpenAPI 3.1*
+## Production-Grade ML Inference Architecture
+This enterprise-ready microservice utilizes a threshold-optimized **LightGBM Regressor** pipeline.
 """,
-    version="1.4.1",
-    swagger_ui_parameters={
-        "defaultModelsExpandDepth": -1,
-        "docExpansion": "list"
-    }
+    version="1.4.2",
+    swagger_ui_parameters={"defaultModelsExpandDepth": -1, "docExpansion": "list"}
 )
 
-
+# Load model artifacts
 try:
     model_artifacts = joblib.load('burnout_prediction_model_artifacts.joblib')
     full_preprocessing_pipeline = model_artifacts['preprocessing_pipeline']
@@ -98,34 +84,41 @@ try:
     best_th2 = model_artifacts['best_th2']
     original_feature_names = model_artifacts['original_feature_names']
     top_7_features = model_artifacts['top_7_features']
-    print("Pipeline artifacts successfully loaded into environment.")
+    print("✅ Pipeline artifacts successfully loaded.")
 except Exception as e:
-    print(f"Execution halted during serialization unpacking: {str(e)}")
-    exit()
+    print(f"❌ Model loading failed: {str(e)}")
+    full_preprocessing_pipeline = None
+    reg_model = None
+    target_map = None
+    best_th1 = None
+    best_th2 = None
+    original_feature_names = None
+    top_7_features = None
 
-reverse_target_map = {v: k for k, v in target_map.items()}
+# Create reverse mapping
+reverse_target_map = {v: k for k, v in (target_map or {}).items()}
+
+# Safety conversion for thresholds
+if isinstance(best_th1, str):
+    best_th1 = float(best_th1)
+if isinstance(best_th2, str):
+    best_th2 = float(best_th2)
 
 @app.post("/predict", summary="Execute Inference Pipeline", responses={422: {"description": "Validation Error Disabled"}})
 def predict_burnout(student_data: dict = Body(...)):
-    try:
-        if full_preprocessing_pipeline is None or reg_model is None:
-            raise HTTPException(status_code=500, detail="Model not loaded")
+    if full_preprocessing_pipeline is None or reg_model is None:
+        raise HTTPException(status_code=500, detail="Model not loaded. Check server logs.")
 
-        # Create DataFrame preserving original types (strings stay strings)
+    try:
+        # Create DataFrame (preserve original dtypes)
         df_input = pd.DataFrame([student_data])
 
-        # Add missing columns with appropriate defaults
+        # Add missing columns
         for col in original_feature_names:
             if col not in df_input.columns:
-                # Try to infer reasonable default
-                if col in ['Pre_Semester_GPA', 'Post_Semester_GPA', 'Anxiety_Level_During_Exams']:
-                    df_input[col] = 0.0
-                elif col in ['Traditional_Study_Hours', 'Weekly_GenAI_Hours']:
-                    df_input[col] = 0
-                else:
-                    df_input[col] = "Unknown"  # for categoricals
+                df_input[col] = np.nan
 
-        # Reorder columns to match training
+        # Reorder columns exactly as training
         df_input = df_input[original_feature_names]
 
         # === RUN PIPELINE ===
@@ -138,18 +131,23 @@ def predict_burnout(student_data: dict = Body(...)):
                 clean_cols = [c.split('__')[-1] if '__' in c else c for c in feature_names_out]
                 processed_df = pd.DataFrame(processed_data, columns=clean_cols)
                 processed_data = processed_df[top_7_features].values
-            except:
+            except Exception:
                 processed_data = processed_data[:, :len(top_7_features)]
         elif isinstance(processed_data, pd.DataFrame):
-            processed_data = processed_data[top_7_features].values
+            processed_data = processed_df[top_7_features].values
+        else:
+            processed_data = np.asarray(processed_data)[:, :len(top_7_features)]
 
-        # Predict
+        # Predict regression score
         raw_score = float(reg_model.predict(processed_data)[0])
 
-        # Classify using thresholds
-        if raw_score < best_th1:
+        # Robust thresholding
+        th1 = float(best_th1) if best_th1 is not None else 0.643
+        th2 = float(best_th2) if best_th2 is not None else 1.271
+
+        if raw_score < th1:
             predicted_class_id = 0
-        elif raw_score < best_th2:
+        elif raw_score < th2:
             predicted_class_id = 1
         else:
             predicted_class_id = 2
@@ -161,13 +159,13 @@ def predict_burnout(student_data: dict = Body(...)):
             "raw_regression_score": round(raw_score, 4),
             "predicted_burnout_risk": risk_level,
             "applied_threshold_bounds": {
-                "low_cutoff": round(best_th1, 3),
-                "high_cutoff": round(best_th2, 3)
+                "low_cutoff": round(th1, 3),
+                "high_cutoff": round(th2, 3)
             }
         }
 
     except Exception as e:
         import traceback
         error_detail = f"Pipeline inference failure: {str(e)}\n{traceback.format_exc()}"
-        print(error_detail)  # Log to console
+        print(error_detail)
         raise HTTPException(status_code=500, detail=str(e))
