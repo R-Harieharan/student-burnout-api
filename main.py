@@ -114,14 +114,17 @@ def predict_burnout(student_data: dict = Body(...)):
         
         for col in original_feature_names:
             if col not in df_input.columns:
-                if col in categorical_features:
-                    # Use a string the encoder expects (e.g., 'Unknown' or 'missing')
-                    df_input[col] = "Unknown" 
+                if col in categorical_cols:
+                    df_input[col] = "Unknown"
                 else:
-                    # Use numeric NaN for numeric columns
                     df_input[col] = np.nan
-
-        # Reorder
+            else:
+                # FORCE type conversion: 
+                # If the column is meant to be numeric but contains strings, this helps
+                if col not in categorical_cols:
+                    df_input[col] = pd.to_numeric(df_input[col], errors='coerce')
+        
+        # Reorder columns
         df_input = df_input[original_feature_names]
 
         # Run pipeline
