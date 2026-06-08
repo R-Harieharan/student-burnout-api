@@ -110,7 +110,7 @@ def predict_burnout(student_data: dict = Body(...)):
                         'Prompt_Engineering_Skill', 'Tool_Diversity', 'Paid_Subscription', 
                         'Institutional_Policy', 'Anxiety_Level_During_Exams']
         # You can infer numeric columns as the rest
-        numeric_features = [col for col in original_feature_names if col not in categorical_features]
+        numeric_features = [col for col in original_feature_names if col not in categorical_cols]
         
         for col in original_feature_names:
             if col not in df_input.columns:
