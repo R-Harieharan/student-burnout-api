@@ -106,7 +106,7 @@ def predict_burnout(student_data: dict = Body(...)):
         df_input = pd.DataFrame([student_data])
 
         # === CRITICAL: Proper defaults for missing columns ===
-        categorical_features = ['Major_Category', 'Year_of_Study', 'Primary_Use_Case', 
+        categorical_cols = ['Major_Category', 'Year_of_Study', 'Primary_Use_Case', 
                         'Prompt_Engineering_Skill', 'Tool_Diversity', 'Paid_Subscription', 
                         'Institutional_Policy', 'Anxiety_Level_During_Exams']
         # You can infer numeric columns as the rest
