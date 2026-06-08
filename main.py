@@ -113,16 +113,18 @@ def predict_burnout(student_data: dict = Body(...)):
         numeric_features = [col for col in original_feature_names if col not in categorical_cols]
         
         for col in original_feature_names:
-            if col not in df_input.columns:
+            if col not in df_input.columns or pd.isna(df_input[col].iloc[0]):
                 if col in categorical_cols:
                     df_input[col] = "Unknown"
                 else:
-                    df_input[col] = np.nan
+                    df_input[col] = 0.0
             else:
                 # FORCE type conversion: 
                 # If the column is meant to be numeric but contains strings, this helps
                 if col not in categorical_cols:
                     df_input[col] = pd.to_numeric(df_input[col], errors='coerce')
+                if pd.isna(df_input[col].iloc[0]):
+                        df_input[col] = 0.0
         
         # Reorder columns
         df_input = df_input[original_feature_names]
