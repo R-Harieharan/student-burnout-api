@@ -66,6 +66,7 @@ def predict_burnout(student_data: dict = Body(...)):
         raise HTTPException(status_code=500, detail="Model not loaded.")
     
     try:
+        print(f"DEBUG: Attempting to load model from: {ARTIFACT_PATH}")
         # Convert input to DataFrame
         df_input = pd.DataFrame([student_data])
         
