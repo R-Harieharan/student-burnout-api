@@ -120,6 +120,11 @@ def predict_burnout(student_data: dict = Body(...)):
         # Reorder
         df_input = df_input[original_feature_names]
 
+        # Temporary debug snippet
+        for col in df_input.columns:
+            if df_input[col].dtype == 'object':
+                print(f"Unique values in {col}: {df_input[col].unique()}")
+
         # Run pipeline
         processed_data = full_preprocessing_pipeline.transform(df_input)
 
