@@ -59,8 +59,10 @@ def predict_performance(data: StudentDataInput):
             data.Tool_Diversity
         ]], dtype=np.float32)
 
-        # Generate prediction (0 = Not High, 1 = High)
-        prediction_int = int(model.predict(input_features)[0])
+        raw_prediction = int(model.predict(input_features)[0])
+        # FIX: Invert the labels to map them back to standard human tracking logic
+        # If raw_prediction is 0, it becomes 1 (High). If it is 1, it becomes 0 (Not High).
+        prediction_int = 1 if raw_prediction == 0 else 0
 
         # Get raw probability percentage scores safely
         if hasattr(model, "predict_proba"):
