@@ -12,10 +12,16 @@ app = FastAPI(
 )
 
 # 2. Load the trained model safely on startup
-try:
-    model = joblib.load("student_performance_lgbm_model.pkl")
-except Exception as e:
-    raise RuntimeError(f"Could not load the model file. Error: {str(e)}")
+model = None
+
+@app.on_event("startup")
+def load_model():
+    global model
+    try:
+        model = joblib.load("student_performance_lgbm_model.pkl")
+    except Exception as e:
+        print(f"CRITICAL: Model load failed: {str(e)}")
+
 
 # 3. Define the Input Data Schema using Pydantic
 # This ensures incoming API requests have the exact data types required
