@@ -67,7 +67,7 @@ def predict_performance(data: StudentDataInput):
         # Get raw probability percentage scores safely
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(input_features)[0]
-            confidence_score = float(probabilities[prediction_int])
+            confidence_score = float(probabilities[raw_prediction])
         else:
             confidence_score = 1.0  # Fallback if probability isn't supported
 
