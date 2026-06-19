@@ -1,1 +1,2 @@
 burnout_prediction_model_artifacts.joblib filter=lfs diff=lfs merge=lfs -text
+student_performance_lgbm_model.pkl filter=lfs diff=lfs merge=lfs -text
