@@ -23,6 +23,7 @@ app = FastAPI(
     title="Student Performance Prediction API",
     description="A production-ready API to predict high-performing student outcomes using an optimized LightGBM model.",
     version="1.0",
+    root_path="/proxy",
     lifespan=lifespan
 )
 
