@@ -76,14 +76,14 @@ def predict_performance(data: StudentDataInput):
             # Get probabilities array for the single input row
             probabilities = model.predict_proba(df_input)           
             # Index 1 corresponds to "High Performer"
-            high_performer_prob = float(probabilities[0][1])
+            high_performer_prob = float(probabilities[0][0])
             # Lower threshold down to 0.50 to offset dataset bias
             prediction_int = 1 if high_performer_prob >= 0.50 else 0            
             # Assign confidence based on the custom threshold result
             if prediction_int == 1:
                 confidence_score = high_performer_prob
             else:
-                confidence_score = float(probabilities[0][0])
+                confidence_score = float(probabilities[0][1])
         else:
             # Safe non-probability fallback
             raw_pred = model.predict(df_input)
@@ -91,6 +91,7 @@ def predict_performance(data: StudentDataInput):
                 prediction_int = int(raw_pred[0])
             else:
                 prediction_int = int(raw_pred)
+            prediction_int = 1 if raw_val == 0 else 0
             confidence_score = 1.0  
 
         #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
