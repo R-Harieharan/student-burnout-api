@@ -77,8 +77,13 @@ def predict_performance(data: StudentDataInput):
         # 2. Extract the confidence score based on the TRUE prediction index
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(df_input)[0]
-            confidence_score = float(probabilities[prediction_int])
+            high_performer_prob = float(probabilities[1])
+            # 🔥 FIX: Lower the threshold from 0.50 down to 0.35 or 0.40
+            # This allows a student with strong metrics to successfully cross the line!
+            prediction_int = 1 if high_performer_prob >= 0.35 else 0
+            confidence_score = high_performer_prob if prediction_int == 1 else probabilities[0]
         else:
+            prediction_int = int(model.predict(df_input)[0])
             confidence_score = 1.0  
             
         # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
