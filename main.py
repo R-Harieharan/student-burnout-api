@@ -46,17 +46,17 @@ def home():
 
 # 5. Create the Prediction End-point
 @app.post("/predict")
-def predict_performance(data: StudentDataInput):
+def predict_performance(data: dict):
     if model is None:
         raise HTTPException(status_code=503, detail="Model is not initialized or available.")
 
     try:
         data_dict = {
-            "Study_Balance": float(data.Study_Balance),
-            "GPA_Difference": float(data.GPA_Difference),
-            "Skill_Retention_Score": float(data.Skill_Retention_Score),
-            "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
-            "Tool_Diversity": float(data.Tool_Diversity)
+            "Study_Balance": float(data.get("Study_Balance",0),
+            "GPA_Difference": float(data.get("GPA_Difference", 0),
+            "Skill_Retention_Score": float(data.get("Skill_Retention_Score", 0),
+            "Anxiety_Level_During_Exams": float(data.get("Anxiety_Level_During_Exams", 0),
+            "Tool_Diversity": float(data.get("Tool_Diversity", 0)
         }
 
         df_input = pd.DataFrame([data_dict])
@@ -75,12 +75,12 @@ def predict_performance(data: StudentDataInput):
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(df_input)
             # Index 0 is Standard Performer, Index 1 is High Performer
-            standard_prob = float(probabilities[0][1])
-            high_prob = float(probabilities[0][0])
+            standard_prob = float(probabilities[0][0])
+            high_prob = float(probabilities[0][1])
             # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
-            prediction_int = 0 if high_prob >= 0.50 else 1
+            prediction_int = 1 if high_prob >= 0.50 else 0
             # Track the matching confidence value
-            confidence_score = high_prob if prediction_int == 0 else standard_prob
+            confidence_score = high_prob if prediction_int == 1 else standard_prob
         else:
             # Safe non-probability fallback (Fixing the raw_val crash)
             raw_pred = model.predict(df_input)
@@ -89,7 +89,7 @@ def predict_performance(data: StudentDataInput):
 
         #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
         # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
-        result_label = "High" if prediction_int == 0 else "Standard"
+        result_label = "High" if prediction_int == 1 else "Standard"
             
         return {
             "prediction_code": prediction_int,
