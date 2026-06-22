@@ -58,22 +58,21 @@ def predict_performance(data: StudentDataInput):
             data.Anxiety_Level_During_Exams,
             data.Tool_Diversity
         ]], dtype=np.float32)
-
-        raw_prediction = int(model.predict(input_features)[0])
-        # FIX: Invert the labels to map them back to standard human tracking logic
-        # If raw_prediction is 0, it becomes 1 (High). If it is 1, it becomes 0 (Not High).
-        prediction_int = 1 if raw_prediction == 0 else 0
-
-        # Get raw probability percentage scores safely
+        
+        # 1. Get the actual class predicted by your machine learning model
+        prediction_int = int(model.predict(input_features)[0])
+        
+        # 2. Extract the confidence score based on the TRUE prediction index
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(input_features)[0]
-            confidence_score = float(probabilities[raw_prediction])
+            confidence_score = float(probabilities[prediction_int])
         else:
-            confidence_score = 1.0  # Fallback if probability isn't supported
-
-        # Map output to user-friendly strings
-        result_label = "High" if prediction_int == 1 else "Not High"
-
+            confidence_score = 1.0  
+            
+        # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
+        # If your dataset trained 0 as High, swap the "High" and "Standard" strings here!
+        result_label = "High" if prediction_int == 1 else "Standard"
+            
         return {
             "prediction_code": prediction_int,
             "prediction": result_label,
