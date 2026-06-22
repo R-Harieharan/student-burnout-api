@@ -75,8 +75,9 @@ def predict_performance(data: dict):
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(df_input)
             # Index 0 is Standard Performer, Index 1 is High Performer
-            standard_prob = float(probabilities[0][0])
-            high_prob = float(probabilities[0][1])
+            flat_probs = probabilities.flatten()
+            standard_prob = float(flat_probs[0])
+            high_prob = float(flat_probs[1])
             # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
             prediction_int = 1 if high_prob >= 0.50 else 0
             # Track the matching confidence value
@@ -84,7 +85,8 @@ def predict_performance(data: dict):
         else:
             # Safe non-probability fallback (Fixing the raw_val crash)
             raw_pred = model.predict(df_input)
-            prediction_int = int(raw_pred[0]) if hasattr(raw_pred, "__len__") else int(raw_pred)
+            flat_pred = raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
+            prediction_int = int(flat_pred[0]) if hasattr(flat_pred, "__len__") else int(flat_pred)
             confidence_score = 1.0  
 
         #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
