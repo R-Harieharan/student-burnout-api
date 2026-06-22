@@ -86,7 +86,11 @@ def predict_performance(data: StudentDataInput):
             # Safe non-probability fallback (Fixing the raw_val crash)
             raw_pred = model.predict(df_input)
             flat_pred = raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
-            prediction_int = int(flat_pred[0]) if hasattr(flat_pred, "__len__") else int(flat_pred)
+            if hasattr(flat_pred, "__len__"):
+                raw_val = int(flat_pred[0])
+            else:
+                raw_val = int(flat_pred)
+            prediction_int = 1 if raw_val == 1 else 0
             confidence_score = 1.0  
 
         #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
