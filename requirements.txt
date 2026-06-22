@@ -5,3 +5,4 @@ joblib
 numpy
 lightgbm
 scikit-learn
+pandas
