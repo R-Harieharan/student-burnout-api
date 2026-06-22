@@ -92,9 +92,10 @@ def predict_performance(data: StudentDataInput):
             else:
                 prediction_int = int(raw_pred)
             confidence_score = 1.0  
-            
+
+        result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
         # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
-        result_label = "High" if prediction_int == 1 else "Standard"
+        #result_label = "High" if prediction_int == 1 else "Standard"
             
         return {
             "prediction_code": prediction_int,
