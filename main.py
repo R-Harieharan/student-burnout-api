@@ -69,8 +69,8 @@ def predict_performance(data: StudentDataInput):
         else:
             confidence_score = 1.0  
             
-        # 3. Map output strings correctly (Assuming 0 = High, 1 = Standard)
-        result_label = "High" if prediction_int == 0 else "Standard"
+        # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
+        result_label = "High" if prediction_int == 1 else "Standard"
             
         return {
             "prediction_code": prediction_int,
