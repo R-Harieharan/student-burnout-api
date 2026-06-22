@@ -78,8 +78,8 @@ def predict_performance(data: dict):
             flat_probs = probabilities.flatten()
             standard_prob = float(flat_probs[0])
             high_prob = float(flat_probs[1])
-            # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
-            prediction_int = 1 if high_prob >= 0.50 else 0
+            # Set code 1 if high_prob wins the 0.25 cutoff, otherwise 0
+            prediction_int = 1 if high_prob >= 0.25 else 0
             # Track the matching confidence value
             confidence_score = high_prob if prediction_int == 1 else standard_prob
         else:
