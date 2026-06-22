@@ -30,11 +30,11 @@ app = FastAPI(
 
 # 3. Define the Input Data Schema using clean Pydantic V2 syntax
 class StudentDataInput(BaseModel):
-    Study_Balance: float = Field(..., description="Calculated student study balance metric", examples=[0.75])
-    GPA_Difference: float = Field(..., description="Difference margin in student GPA scores", examples=[0.32])
-    Skill_Retention_Score: float = Field(..., description="Testing retention score metric", examples=[0.81])
-    Anxiety_Level_During_Exams: float = Field(..., description="Normalized metric for exam anxiety", examples=[0.45])
-    Tool_Diversity: float = Field(..., description="Score metric representing tech tool diversity utilized", examples=[0.60])
+    Study_Balance: float = Field(..., description="Calculated student study balance metric", examples=[35.0])
+    GPA_Difference: float = Field(..., description="Difference margin in student GPA scores", examples=[0.8])
+    Skill_Retention_Score: float = Field(..., description="Testing retention score metric", examples=[90.0])
+    Anxiety_Level_During_Exams: float = Field(..., description="Normalized metric for exam anxiety", examples=[2.0])
+    Tool_Diversity: float = Field(..., description="Score metric representing tech tool diversity utilized", examples=[4.0])
 
 # 4. Create the Home Route
 @app.get("/")
@@ -46,17 +46,17 @@ def home():
 
 # 5. Create the Prediction End-point
 @app.post("/predict")
-def predict_performance(data: dict):
+def predict_performance(data: StudentDataInput):
     if model is None:
         raise HTTPException(status_code=503, detail="Model is not initialized or available.")
 
     try:
         data_dict = {
-            "Study_Balance": float(data.get("Study_Balance",0)),
-            "GPA_Difference": float(data.get("GPA_Difference", 0)),
-            "Skill_Retention_Score": float(data.get("Skill_Retention_Score", 0)),
-            "Anxiety_Level_During_Exams": float(data.get("Anxiety_Level_During_Exams", 0)),
-            "Tool_Diversity": float(data.get("Tool_Diversity", 0))
+            "Study_Balance": float(data.Study_Balance),
+            "GPA_Difference": float(data.GPA_Difference),
+            "Skill_Retention_Score": float(data.Skill_Retention_Score),
+            "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
+            "Tool_Diversity": float(data.Tool_Diversity)
         }
 
         df_input = pd.DataFrame([data_dict])
