@@ -78,19 +78,18 @@ def predict_performance(data: StudentDataInput):
             standard_prob = float(probabilities[0][1])
             high_prob = float(probabilities[0][0])
             # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
-            prediction_int = 1 if high_prob >= 0.50 else 0
+            prediction_int = 0 if high_prob >= 0.50 else 1
             # Track the matching confidence value
-            confidence_score = high_prob if prediction_int == 1 else standard_prob
+            confidence_score = high_prob if prediction_int == 0 else standard_prob
         else:
             # Safe non-probability fallback (Fixing the raw_val crash)
             raw_pred = model.predict(df_input)
             prediction_int = int(raw_pred[0]) if hasattr(raw_pred, "__len__") else int(raw_pred)
-            prediction_int = 1 if prediction_int == 0 else 0
             confidence_score = 1.0  
 
         #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
         # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
-        result_label = "High" if prediction_int == 1 else "Standard"
+        result_label = "High" if prediction_int == 0 else "Standard"
             
         return {
             "prediction_code": prediction_int,
