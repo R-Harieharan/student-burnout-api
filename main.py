@@ -52,11 +52,11 @@ def predict_performance(data: dict):
 
     try:
         data_dict = {
-            "Study_Balance": float(data.get("Study_Balance",0),
-            "GPA_Difference": float(data.get("GPA_Difference", 0),
-            "Skill_Retention_Score": float(data.get("Skill_Retention_Score", 0),
-            "Anxiety_Level_During_Exams": float(data.get("Anxiety_Level_During_Exams", 0),
-            "Tool_Diversity": float(data.get("Tool_Diversity", 0)
+            "Study_Balance": float(data.get("Study_Balance",0)),
+            "GPA_Difference": float(data.get("GPA_Difference", 0)),
+            "Skill_Retention_Score": float(data.get("Skill_Retention_Score", 0)),
+            "Anxiety_Level_During_Exams": float(data.get("Anxiety_Level_During_Exams", 0)),
+            "Tool_Diversity": float(data.get("Tool_Diversity", 0))
         }
 
         df_input = pd.DataFrame([data_dict])
