@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import joblib
 import numpy as np
+import pandas as pd
 
 # Global variable placeholder for the model
 model = None
@@ -50,21 +51,32 @@ def predict_performance(data: StudentDataInput):
         raise HTTPException(status_code=503, detail="Model is not initialized or available.")
 
     try:
-        # Convert data into a 2D float32 array required by LightGBM
-        input_features = np.array([[
-            data.Study_Balance,
-            data.GPA_Difference,
-            data.Skill_Retention_Score,
-            data.Anxiety_Level_During_Exams,
-            data.Tool_Diversity
-        ]], dtype=np.float32)
+        data_dict = {
+            "Study_Balance": float(data.Study_Balance),
+            "GPA_Difference": float(data.GPA_Difference),
+            "Skill_Retention_Score": float(data.Skill_Retention_Score),
+            "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
+            "Tool_Diversity": float(data.Tool_Diversity)
+        }
+
+        df_input = pd.DataFrame([data_dict])
+
+        ordered_features = [
+            "Study_Balance", 
+            "GPA_Difference", 
+            "Skill_Retention_Score", 
+            "Anxiety_Level_During_Exams", 
+            "Tool_Diversity"
+        ]
+
+        df_input = df_input[ordered_features]
         
         # 1. Get the actual class predicted by your machine learning model
-        prediction_int = int(model.predict(input_features)[0])
+        prediction_int = int(model.predict(df_input)[0])
         
         # 2. Extract the confidence score based on the TRUE prediction index
         if hasattr(model, "predict_proba"):
-            probabilities = model.predict_proba(input_features)[0]
+            probabilities = model.predict_proba(df_input)[0]
             confidence_score = float(probabilities[prediction_int])
         else:
             confidence_score = 1.0  
