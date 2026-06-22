@@ -52,11 +52,11 @@ def predict_performance(data: StudentDataInput):
 
     try:
         data_dict = {
-            "Study_Balance": float(data.Study_Balance),
+            "Study_Balance": float(data.Study_Balance / 40.0),
             "GPA_Difference": float(data.GPA_Difference),
-            "Skill_Retention_Score": float(data.Skill_Retention_Score),
-            "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
-            "Tool_Diversity": float(data.Tool_Diversity)
+            "Skill_Retention_Score": float(data.Skill_Retention_Score / 100.0),
+            "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams / 10.0),
+            "Tool_Diversity": float(data.Tool_Diversity / 5.0)
         }
 
         df_input = pd.DataFrame([data_dict])
@@ -77,8 +77,8 @@ def predict_performance(data: StudentDataInput):
             probabilities = model.predict_proba(df_input)           
             # Index 1 corresponds to "High Performer"
             high_performer_prob = float(probabilities[0][1])
-            # Lower threshold down to 0.35 to offset dataset bias
-            prediction_int = 1 if high_performer_prob >= 0.35 else 0            
+            # Lower threshold down to 0.50 to offset dataset bias
+            prediction_int = 1 if high_performer_prob >= 0.50 else 0            
             # Assign confidence based on the custom threshold result
             if prediction_int == 1:
                 confidence_score = high_performer_prob
@@ -93,9 +93,9 @@ def predict_performance(data: StudentDataInput):
                 prediction_int = int(raw_pred)
             confidence_score = 1.0  
 
-        result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
+        #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
         # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
-        #result_label = "High" if prediction_int == 1 else "Standard"
+        result_label = "High" if prediction_int == 1 else "Standard"
             
         return {
             "prediction_code": prediction_int,
