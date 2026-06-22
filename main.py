@@ -79,7 +79,7 @@ def predict_performance(data: StudentDataInput):
             standard_prob = float(flat_probs[0])
             high_prob = float(flat_probs[1])
             # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
-            prediction_int = 1 if high_prob >= 0.50 else 0
+            prediction_int = 1 if high_prob > 0.51 else 0
             # Track the matching confidence value
             confidence_score = high_prob if prediction_int == 1 else standard_prob
         else:
