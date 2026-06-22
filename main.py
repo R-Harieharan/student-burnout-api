@@ -76,8 +76,8 @@ def predict_performance(data: StudentDataInput):
             probabilities = model.predict_proba(df_input)
             # Index 0 is Standard Performer, Index 1 is High Performer
             flat_probs = probabilities.flatten()
-            standard_prob = float(flat_probs[0])
-            high_prob = float(flat_probs[1])
+            standard_prob = float(flat_probs[1])
+            high_prob = float(flat_probs[0])
             # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
             prediction_int = 1 if high_prob > 0.51 else 0
             # Track the matching confidence value
