@@ -89,7 +89,7 @@ def predict_performance(data: dict):
             if hasattr(flat_pred, "__len__"):
                 raw_val = int(flat_pred[0]) 
             else:
-                raw _val = int(flat_pred)
+                raw_val = int(flat_pred)
             prediction_int = 1 if raw_val == 0 else 0
             confidence_score = 1.0  
 
