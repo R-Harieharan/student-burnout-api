@@ -73,30 +73,23 @@ def predict_performance(data: StudentDataInput):
         
         # 2. Extract the confidence score based on the TRUE prediction index
         if hasattr(model, "predict_proba"):
-            # Get probabilities array for the single input row
-            probabilities = model.predict_proba(df_input)           
-            # Index 1 corresponds to "High Performer"
-            high_performer_prob = float(probabilities[0][0])
-            # Lower threshold down to 0.50 to offset dataset bias
-            prediction_int = 1 if high_performer_prob >= 0.50 else 0            
-            # Assign confidence based on the custom threshold result
-            if prediction_int == 1:
-                confidence_score = high_performer_prob
-            else:
-                confidence_score = float(probabilities[0][1])
+            probabilities = model.predict_proba(df_input)
+            # Index 0 is Standard Performer, Index 1 is High Performer
+            standard_prob = float(probabilities[0][0])
+            high_prob = float(probabilities[0][1])
+            # Set code 1 if high_prob wins the 0.50 cutoff, otherwise 0
+            prediction_int = 1 if high_prob >= 0.50 else 0
+            # Track the matching confidence value
+            confidence_score = high_prob if prediction_int == 1 else standard_prob
         else:
-            # Safe non-probability fallback
+            # Safe non-probability fallback (Fixing the raw_val crash)
             raw_pred = model.predict(df_input)
-            if hasattr(raw_pred, "__len__"):
-                prediction_int = int(raw_pred[0])
-            else:
-                prediction_int = int(raw_pred)
-            prediction_int = 1 if raw_val == 0 else 0
+            prediction_int = int(raw_pred[0]) if hasattr(raw_pred, "__len__") else int(raw_pred)
             confidence_score = 1.0  
 
         #result_label = f"DEBUG: Standard Prob is {probabilities[0][0]:.4f} and High Prob is {probabilities[0][1]:.4f}"
         # 3. Map output strings correctly (Assuming 1 = High, 0 = Standard)
-        result_label = "Standard" if prediction_int == 1 else "High"
+        result_label = "High" if prediction_int == 1 else "Standard"
             
         return {
             "prediction_code": prediction_int,
