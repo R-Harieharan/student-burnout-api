@@ -99,12 +99,14 @@ def predict_performance(data: StudentDataInput):
         # --- SHAP Explanation Generation ---
         # Generate SHAP values for the single input row
         shap_values = explainer(df_input)
-        # Handle probability output slicing if LightGBM returns multi-class shapes
         if len(shap_values.shape) == 3:
-            # Slice for class index prediction_int to show factors driving this specific outcome
+            # Multi-class shapes require extracting row 0, all features (:), and the target class index
             shap_values_display = shap_values[0, :, prediction_int]
+        elif len(shap_values.shape) == 2 and shap_values.shape[0] == 1:
+            # Standard single row format outputting 2D bounds must be sliced via index 0 to retain structural 1D tracking
+            shap_values_display = shap_values[0, :]
         else:
-            shap_values_display = shap_values[0]
+            shap_values_display = shap_values
         # Generate a waterfall summary plot for the single prediction instance
         plt.figure(figsize=(8, 4))
         shap.plots.waterfall(shap_values_display, show=False)
