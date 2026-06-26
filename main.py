@@ -80,8 +80,8 @@ def predict_performance(data: StudentDataInput):
         # --- Prediction & Confidence Code ---
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(df_input)
-            standard_prob = float(probabilities[0][0])
-            high_prob = float(probabilities[0][1])
+            standard_prob = float(probabilities[0][1])
+            high_prob = float(probabilities[0][0])
             if high_prob > 0.51:
                 prediction_int = 1
                 result_label = "High"
