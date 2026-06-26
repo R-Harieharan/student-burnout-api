@@ -129,7 +129,7 @@ def predict_performance(data: StudentDataInput):
                     row_shap = raw_shap.flatten()
             else:
                 row_shap = np.array(raw_shap).flatten()
-            
+               
             # 3. Read the clean raw numerical student inputs array
             flat_data = np.array(df_input.values, dtype=float).flatten()
             
@@ -186,6 +186,8 @@ def predict_performance(data: StudentDataInput):
             "prediction": result_label,
             "confidence": round(confidence_score, 4),
             "shap_plot_base64": plot_base64,
+            "shap_values": row_shap.tolist(),
+            "feature_names": ordered_features,
             "status": "Success",
         }
     except Exception as e:
