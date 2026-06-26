@@ -27,15 +27,10 @@ ordered_features = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, explainer
-    try:
-        model = joblib.load("student_performance_lgbm_model.pkl")
-        # Initialize the SHAP explainer for LightGBM tree-based models
-        explainer = shap.TreeExplainer(model)
-    except Exception as e:
-        raise RuntimeError(
-            f"Could not load the model or SHAP explainer. Error: {str(e)}"
-        )
-        yield
+    model = joblib.load("student_performance_lgbm_model.pkl")
+    # Initialize the SHAP explainer for LightGBM tree-based models
+    explainer = shap.TreeExplainer(model)
+    yield
         # Clean up operations can go here if needed on shutdown
 # 2. Initialize the FastAPI Application with lifespan
 app = FastAPI(
