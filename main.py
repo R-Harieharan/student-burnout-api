@@ -95,7 +95,7 @@ def predict_performance(data: StudentDataInput):
             raw_val = int(flat_pred[0]) if hasattr(flat_pred, "__len__") else int(flat_pred)
             prediction_int = 1 if raw_val == 1 else 0
             confidence_score = 1.0
-        result_label = "High" if prediction_int == 1 else "Standard"
+            result_label = "High" if prediction_int == 1 else "Standard"
         # --- SHAP Explanation Generation ---
         plot_base64 = ""
         try:
