@@ -139,7 +139,8 @@ def predict_performance(data: StudentDataInput):
                 display_labels.append(f"{feat} = {val:.1f}")
                 
             # 5. Use Matplotlib's Object-Oriented Canvas to completely isolate drawing memory threads
-            fig = matplotlib.figure.Figure(figsize=(7.5, 3.8), dpi=100)
+            fig = matplotlib.figure.Figure(figsize=(8.0, 4.0), dpi=100)
+            fig.subplots_adjust(left=0.35, right=0.92, top=0.85, bottom=0.18)
             ax = fig.add_subplot(111)
             
             # 6. Apply clear dual-color indicator bars (Royal Blue = Positive impact, Crimson = Negative impact)
@@ -164,7 +165,7 @@ def predict_performance(data: StudentDataInput):
             
             # 7. Save plot payload directly to a secure RAM byte matrix string stream
             buffer = io.BytesIO()
-            fig.savefig(buffer, format="png", bbox_inches="tight")
+            fig.savefig(buffer, format="png")
             buffer.seek(0)
             plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
             
