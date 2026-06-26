@@ -185,6 +185,8 @@ def predict_performance(data: StudentDataInput):
             "prediction_code": prediction_int,
             "prediction": result_label,
             "confidence": round(confidence_score, 4),
+            "high_probability": high_prob,
+            "standard_probability": standard_prob,
             "shap_plot_base64": plot_base64,
             "shap_values": row_shap.tolist(),
             "feature_names": ordered_features,
