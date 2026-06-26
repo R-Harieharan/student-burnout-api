@@ -1,8 +1,9 @@
-fastapi
-uvicorn
-pydantic
-joblib
-numpy
-lightgbm
-scikit-learn
-pandas
+fastapi>=0.110.
+uvicorn>=0.28.0
+pydantic>=2.6.0
+joblib>=1.3.2
+lightgbm>=4.3.0
+shap>=0.45.0
+numpy>=1.24.0,<2.0.0
+pandas>=2.1.0
+matplotlib>=3.8.0
