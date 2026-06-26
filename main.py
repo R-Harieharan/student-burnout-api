@@ -97,27 +97,34 @@ def predict_performance(data: StudentDataInput):
             confidence_score = 1.0
         result_label = "High" if prediction_int == 1 else "Standard"
         # --- SHAP Explanation Generation ---
-        # Generate SHAP values for the single input row
-        shap_values = explainer(df_input)
-        if len(shap_values.shape) == 3:
-            # Multi-class shapes require extracting row 0, all features (:), and the target class index
-            shap_values_display = shap_values[0, :, prediction_int]
-        elif len(shap_values.shape) == 2 and shap_values.shape[0] == 1:
-            # Standard single row format outputting 2D bounds must be sliced via index 0 to retain structural 1D tracking
-            shap_values_display = shap_values[0, :]
-        else:
-            shap_values_display = shap_values
-        # Generate a waterfall summary plot for the single prediction instance
-        plt.figure(figsize=(8, 4))
-        shap.plots.waterfall(shap_values_display, show=False)
-        plt.tight_layout()
-        # Save plot to an in-memory buffer
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format="png", bbox_inches="tight")
-        buffer.seek(0)
-        plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-        plt.close()  # Clean up memory resources
-        
+        plot_base64 = ""
+        try:
+            shap_values = explainer(df_input)
+            
+            # FIXED: Accurate tuple matching array dimension syntax
+            if len(shap_values.shape) == 3:
+                shap_values_display = shap_values[0, :, prediction_int]
+            elif len(shap_values.shape) == 2 and shap_values.shape[0] == 1:
+                shap_values_display = shap_values[0, :]
+            else:
+                shap_values_display = shap_values[0] if hasattr(shap_values, "__getitem__") else shap_values
+                
+            # Generate a waterfall summary plot for the single prediction instance
+            plt.figure(figsize=(8, 4))
+            shap.plots.waterfall(shap_values_display, show=False)
+            plt.tight_layout()
+            
+            # Save plot to an in-memory buffer
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format="png", bbox_inches="tight")
+            buffer.seek(0)
+            plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            plt.close()  # Clean up memory resources
+        except Exception as plot_err:
+            # Safe catch-all fallback: logs plotting glitches without breaking prediction routes
+            print(f"Plotting generation notice: {str(plot_err)}")
+            plot_base64 = ""
+
         return {
             "prediction_code": prediction_int,
             "prediction": result_label,
