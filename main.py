@@ -1,7 +1,5 @@
 import base64
-
 import io
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 import joblib
@@ -82,9 +80,8 @@ def predict_performance(data: StudentDataInput):
         # --- Prediction & Confidence Code ---
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(df_input)
-            flat_probs = probabilities.flatten()
-            standard_prob = float(flat_probs[1])
-            high_prob = float(flat_probs[0])
+            standard_prob = float(probabilities[0][0])
+            high_prob = float(probabilities[0][1])
             prediction_int = 1 if high_prob > 0.51 else 0
             if (
                 float(data.Skill_Retention_Score) < 50.0
