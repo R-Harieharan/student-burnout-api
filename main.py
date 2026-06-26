@@ -88,7 +88,7 @@ def predict_performance(data: StudentDataInput):
                 and float(data.Anxiety_Level_During_Exams) >= 7.0
             ):
                 prediction_int = 0
-                confidence_score = high_prob if prediction_int == 1 else standard_prob
+            confidence_score = high_prob if prediction_int == 1 else standard_prob
         else:
             raw_pred = model.predict(df_input)
             flat_pred = raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
