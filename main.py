@@ -112,22 +112,22 @@ def predict_performance(data: StudentDataInput):
         # --- SHAP Explanation Generation & Isolated Safe Plotting Block ---
         plot_base64 = ""
         try:
-            # 1. Extract raw SHAP values and base rates
+            # 1. Extract raw metrics
             raw_shap = explainer.shap_values(df_input)
             base_vals = explainer.expected_value
             
-            # 2. DYNAMICALLY FLATTEN SHAP VALUES TO 1D (Protects against multi-class shapes)
+            # 2. Force feature impacts down to a pure 1D array
             if isinstance(raw_shap, list):
                 row_shap = np.array(raw_shap[prediction_int]).flatten()
             elif isinstance(raw_shap, np.ndarray):
                 if len(raw_shap.shape) == 3:
                     row_shap = raw_shap[0, :, prediction_int].flatten()
                 else:
-                    row_shap = raw_shap[0].flatten()
+                    row_shap = raw_shap.flatten()
             else:
                 row_shap = np.array(raw_shap).flatten()
                 
-            # 3. DYNAMICALLY EXTRACT SCALAR BASE VALUE (Prevents multi-element array crashes)
+            # 3. Force base values down to a pure scalar float
             if isinstance(base_vals, (list, np.ndarray)):
                 if len(base_vals) > prediction_int:
                     base_value = float(base_vals[prediction_int])
@@ -136,28 +136,30 @@ def predict_performance(data: StudentDataInput):
             else:
                 base_value = float(base_vals)
             
-            # 4. Manually construct a pristine, valid 1D Explanation object for the waterfall plot
+            # 4. FIXED: Flatten input data to 1D to prevent dimension crashes and text truncations
+            flat_data = np.array(df_input.values, dtype=float).flatten()
+            
+            # 5. Build the pristine 1D Explanation structure
             shap_values_display = shap.Explanation(
                 values=np.array(row_shap, dtype=float),
                 base_values=float(base_value),
-                data=np.array(df_input.values[0], dtype=float),
+                data=flat_data, # <-- Pure 1D array resolves row-parsing blocks
                 feature_names=list(ordered_features)
             )
                 
-            # 5. Generate and save the waterfall plot to memory buffer
-            plt.figure(figsize=(8, 4))
+            # 6. FIXED: Lock a static canvas size and drop tight_layout to stop the shaking bug completely
+            fig, ax = plt.subplots(figsize=(9, 4.5), dpi=100)
             shap.plots.waterfall(shap_values_display, show=False)
-            plt.tight_layout()
             
+            # Save the rendering directly into memory 
             buffer = io.BytesIO()
-            plt.savefig(buffer, format="png", bbox_inches="tight")
+            plt.savefig(buffer, format="png", bbox_inches="tight", pad_inches=0.2)
             buffer.seek(0)
             plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-            plt.close()
+            plt.close(fig) # Completely free up thread memory
             
         except Exception as plot_err:
-            # CRITICAL FOR DEBUGGING: This prints the exact traceback to your Hugging Face Space logs
-            print(f"SHAP Vector Plotting Fix Notice: {str(plot_err)}")
+            print(f"SHAP Layout Framework Notice: {str(plot_err)}")
             plot_base64 = ""
 
         return {
