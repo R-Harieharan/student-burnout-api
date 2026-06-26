@@ -109,32 +109,46 @@ def predict_performance(data: StudentDataInput):
                 result_label = "Standard"
             confidence_score = 1.0
         # --- SHAP Explanation Generation ---
+                # --- SHAP Explanation Generation & Pristine 1D Reconstruction ---
         plot_base64 = ""
         try:
-            shap_values = explainer(df_input)
+            # 1. Extract raw SHAP values as clean numpy arrays instead of complex Explanation objects
+            raw_shap = explainer.shap_values(df_input)
+            base_vals = explainer.expected_value
             
-            # FIXED: Accurate tuple matching array dimension syntax
-            if len(shap_values.shape) == 3:
-                shap_values_display = shap_values[0, :, prediction_int]
-            elif len(shap_values.shape) == 2 and shap_values.shape[0] == 1:
-                shap_values_display = shap_values[0, :]
+            # 2. Extract the correct class metrics based on your prediction index
+            if isinstance(raw_shap, list):
+                row_shap = raw_shap[prediction_int][0]
+                base_value = base_vals[prediction_int] if isinstance(base_vals, (list, np.ndarray)) else base_vals
             else:
-                shap_values_display = shap_values[0] if hasattr(shap_values, "__getitem__") else shap_values
+                if len(raw_shap.shape) == 3:
+                    row_shap = raw_shap[0, :, prediction_int]
+                    base_value = base_vals[prediction_int] if isinstance(base_vals, (list, np.ndarray)) else base_vals
+                else:
+                    row_shap = raw_shap[0] if len(raw_shap.shape) == 2 else raw_shap
+                    base_value = base_vals
+            
+            # 3. Manually construct a pristine, valid 1D Explanation object for the waterfall plot
+            shap_values_display = shap.Explanation(
+                values=np.array(row_shap, dtype=float),
+                base_values=float(base_value), # Forcing float() completely satisfies the waterfall scalar requirement
+                data=df_input.iloc[0].values,
+                feature_names=ordered_features
+            )
                 
-            # Generate a waterfall summary plot for the single prediction instance
+            # 4. Generate and save the waterfall plot to memory buffer
             plt.figure(figsize=(8, 4))
             shap.plots.waterfall(shap_values_display, show=False)
             plt.tight_layout()
             
-            # Save plot to an in-memory buffer
             buffer = io.BytesIO()
             plt.savefig(buffer, format="png", bbox_inches="tight")
             buffer.seek(0)
             plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-            plt.close()  # Clean up memory resources
+            plt.close()
+            
         except Exception as plot_err:
-            # Safe catch-all fallback: logs plotting glitches without breaking prediction routes
-            print(f"Plotting generation notice: {str(plot_err)}")
+            print(f"SHAP Plotting Error Details: {str(plot_err)}")
             plot_base64 = ""
 
         return {
