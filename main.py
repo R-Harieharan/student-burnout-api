@@ -109,32 +109,42 @@ def predict_performance(data: StudentDataInput):
                 result_label = "Standard"
             confidence_score = 1.0
 
-        # --- SHAP Explanation Generation & Scalar Optimization ---
+        # --- SHAP Explanation Generation & Isolated Safe Plotting Block ---
         plot_base64 = ""
         try:
-            # 1. Use the modern call syntax to extract structured explanations
-            shap_values = explainer(df_input)
+            # 1. Extract raw SHAP values and base rates
+            raw_shap = explainer.shap_values(df_input)
+            base_vals = explainer.expected_value
             
-            # 2. Slice the matrix safely based on the dimension shape
-            if len(shap_values.shape) == 3:
-                # Multi-class layout: [row_index, feature_index, class_index]
-                shap_values_display = shap_values[0, :, prediction_int]
-            elif len(shap_values.shape) == 2:
-                # Binary single-output layout: [row_index, feature_index]
-                shap_values_display = shap_values[0, :]
-            else:
-                shap_values_display = shap_values
-
-            # 3. CRITICAL FIXED: Force base_values to be a scalar float to satisfy waterfall rules
-            if hasattr(shap_values_display, "base_values"):
-                bv = shap_values_display.base_values
-                # Flatten and extract the scalar value if it's locked inside an array wrapper
-                if hasattr(bv, "__len__") or isinstance(bv, np.ndarray):
-                    shap_values_display.base_values = float(np.ravel(bv)[0])
+            # 2. DYNAMICALLY FLATTEN SHAP VALUES TO 1D (Protects against multi-class shapes)
+            if isinstance(raw_shap, list):
+                row_shap = np.array(raw_shap[prediction_int]).flatten()
+            elif isinstance(raw_shap, np.ndarray):
+                if len(raw_shap.shape) == 3:
+                    row_shap = raw_shap[0, :, prediction_int].flatten()
                 else:
-                    shap_values_display.base_values = float(bv)
-
-            # 4. Generate and save the waterfall plot to memory buffer
+                    row_shap = raw_shap[0].flatten()
+            else:
+                row_shap = np.array(raw_shap).flatten()
+                
+            # 3. DYNAMICALLY EXTRACT SCALAR BASE VALUE (Prevents multi-element array crashes)
+            if isinstance(base_vals, (list, np.ndarray)):
+                if len(base_vals) > prediction_int:
+                    base_value = float(base_vals[prediction_int])
+                else:
+                    base_value = float(base_vals[0])
+            else:
+                base_value = float(base_vals)
+            
+            # 4. Manually construct a pristine, valid 1D Explanation object for the waterfall plot
+            shap_values_display = shap.Explanation(
+                values=np.array(row_shap, dtype=float),
+                base_values=float(base_value),
+                data=np.array(df_input.values[0], dtype=float),
+                feature_names=list(ordered_features)
+            )
+                
+            # 5. Generate and save the waterfall plot to memory buffer
             plt.figure(figsize=(8, 4))
             shap.plots.waterfall(shap_values_display, show=False)
             plt.tight_layout()
@@ -146,10 +156,9 @@ def predict_performance(data: StudentDataInput):
             plt.close()
             
         except Exception as plot_err:
-            # Captures any inner formatting notices safely to your server logs
+            # CRITICAL FOR DEBUGGING: This prints the exact traceback to your Hugging Face Space logs
             print(f"SHAP Vector Plotting Fix Notice: {str(plot_err)}")
             plot_base64 = ""
-
 
         return {
             "prediction_code": prediction_int,
