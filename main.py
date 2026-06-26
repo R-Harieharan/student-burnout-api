@@ -82,20 +82,32 @@ def predict_performance(data: StudentDataInput):
             probabilities = model.predict_proba(df_input)
             standard_prob = float(probabilities[0][0])
             high_prob = float(probabilities[0][1])
-            prediction_int = 1 if high_prob > 0.51 else 0
+            if high_prob > 0.51:
+                prediction_int = 1
+                result_label = "High"
+                confidence_score = high_prob
+            else:
+                prediction_int = 0
+                result_label = "Standard"
+                confidence_score = standard_prob
             if (
                 float(data.Skill_Retention_Score) < 50.0
                 and float(data.Anxiety_Level_During_Exams) >= 7.0
             ):
                 prediction_int = 0
-            confidence_score = high_prob if prediction_int == 1 else standard_prob
+                result_label = "Standard"
+                confidence_score = standard_prob    
         else:
             raw_pred = model.predict(df_input)
             flat_pred = raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
             raw_val = int(flat_pred[0]) if hasattr(flat_pred, "__len__") else int(flat_pred)
-            prediction_int = 1 if raw_val == 1 else 0
+            if raw_val == 1:
+                prediction_int = 1
+                result_label = "High"
+            else:
+                prediction_int = 0
+                result_label = "Standard"
             confidence_score = 1.0
-            result_label = "High" if prediction_int == 1 else "Standard"
         # --- SHAP Explanation Generation ---
         plot_base64 = ""
         try:
