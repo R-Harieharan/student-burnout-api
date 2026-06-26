@@ -109,67 +109,75 @@ def predict_performance(data: StudentDataInput):
                 result_label = "Standard"
             confidence_score = 1.0
 
-        # --- SHAP Explanation Generation & Isolated Thread-Safe Plotting ---
+        # --- SHAP Explanation Generation & Custom Type-Aware Native Plotting ---
         plot_base64 = ""
         try:
-            # 1. Extract raw SHAP outputs and metrics
+            # 1. Extract raw SHAP feature impact array weights cleanly
             raw_shap = explainer.shap_values(df_input)
-            base_vals = explainer.expected_value
             
-            # 2. Force feature impacts down to a pure 1D array
+            # 2. DYNAMICALLY DETECT AND EXTRACT 1D FEATURE IMPACTS
+            # Fixes the IndexError by checking if SHAP returned a multi-class list or a flat 1D binary array
             if isinstance(raw_shap, list):
                 row_shap = np.array(raw_shap[prediction_int]).flatten()
             elif isinstance(raw_shap, np.ndarray):
                 if len(raw_shap.shape) == 3:
                     row_shap = raw_shap[0, :, prediction_int].flatten()
+                elif len(raw_shap.shape) == 2:
+                    row_shap = raw_shap[0].flatten()
                 else:
+                    # If it's already a flat 1D binary array of shape (5,), use it directly!
                     row_shap = raw_shap.flatten()
             else:
                 row_shap = np.array(raw_shap).flatten()
-                
-            # 3. Force base values down to a pure scalar float
-            if isinstance(base_vals, (list, np.ndarray)):
-                if len(base_vals) > prediction_int:
-                    base_value = float(base_vals[prediction_int])
-                else:
-                    base_value = float(base_vals)
-            else:
-                base_value = float(base_vals)
             
-            # 4. Flatten input data to 1D to prevent layout alignment crashes
+            # 3. Read the clean raw numerical student inputs array
             flat_data = np.array(df_input.values, dtype=float).flatten()
             
-            # 5. Build the pristine 1D Explanation structure
-            shap_values_display = shap.Explanation(
-                values=np.array(row_shap, dtype=float),
-                base_values=float(base_value),
-                data=flat_data,
-                feature_names=list(ordered_features)
-            )
+            # 4. Generate clean display labels combining feature name + user inputs
+            display_labels = []
+            for feat, val in zip(ordered_features, flat_data):
+                display_labels.append(f"{feat} = {val:.1f}")
                 
-            # 6. FIXED: Create a completely independent, isolated figure instance object.
-            # This completely avoids using the global `plt` state tracker across active threads.
+            # 5. Use Matplotlib's Object-Oriented Canvas to completely isolate drawing memory threads
             fig = matplotlib.figure.Figure(figsize=(7.5, 3.8), dpi=100)
             ax = fig.add_subplot(111)
             
-            # Render the SHAP plot directly onto our isolated axis object
-            shap.plots.waterfall(shap_values_display, show=False, ax=ax)
+            # 6. Apply clear dual-color indicator bars (Royal Blue = Positive impact, Crimson = Negative impact)
+            bar_colors = ['#1E3A8A' if val >= 0 else '#B91C1C' for val in row_shap]
             
-            # 7. FIXED: Drop all dynamic layout calculations to stop the shaking bug for good
-            # Save the rendering directly to an isolated memory byte array string
+            # Draw pristine horizontal impact indicators safely on the isolated canvas 
+            y_positions = np.arange(len(ordered_features))
+            ax.barh(y_positions, row_shap, color=bar_colors, edgecolor='none', height=0.6)
+            
+            # Configure visual frame metrics cleanly
+            ax.set_yticks(y_positions)
+            ax.set_yticklabels(display_labels, fontsize=10, fontweight='bold', color='#1F2937')
+            ax.axvline(x=0, color='#6B7280', linestyle='--', linewidth=1)
+            ax.set_xlabel("Feature Impact Weight (SHAP)", fontsize=10, fontweight='bold')
+            ax.set_title(f"Performance Driver Breakdown ({result_label} Tier)", fontsize=11, fontweight='bold', pad=12)
+            
+            # Clean up borders to optimize whitespace layout
+            for spine in ['top', 'right']:
+                ax.spines[spine].set_visible(False)
+            ax.spines['left'].set_color('#D1D5DB')
+            ax.spines['bottom'].set_color('#D1D5DB')
+            
+            # 7. Save plot payload directly to a secure RAM byte matrix string stream
             buffer = io.BytesIO()
             fig.savefig(buffer, format="png", bbox_inches="tight")
             buffer.seek(0)
             plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
             
-            # Clear resources explicitly from the active thread loop context
+            # Release allocations immediately to maintain fast response loops
             buffer.close()
             fig.clf()
             del fig, ax
             
         except Exception as plot_err:
-            print(f"SHAP Thread-Safe Generation Notice: {str(plot_err)}")
+            # Stream error strings directly to your space logs console for easy debugging
+            print(f"CRITICAL CUSTOM PLOT LOG NOTICE: {str(plot_err)}")
             plot_base64 = ""
+
 
 
         return {
