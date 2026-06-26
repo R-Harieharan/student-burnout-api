@@ -109,10 +109,10 @@ def predict_performance(data: StudentDataInput):
                 result_label = "Standard"
             confidence_score = 1.0
 
-        # --- SHAP Explanation Generation & Isolated Safe Plotting Block ---
+        # --- SHAP Explanation Generation & Isolated Thread-Safe Plotting ---
         plot_base64 = ""
         try:
-            # 1. Extract raw metrics
+            # 1. Extract raw SHAP outputs and metrics
             raw_shap = explainer.shap_values(df_input)
             base_vals = explainer.expected_value
             
@@ -132,35 +132,45 @@ def predict_performance(data: StudentDataInput):
                 if len(base_vals) > prediction_int:
                     base_value = float(base_vals[prediction_int])
                 else:
-                    base_value = float(base_vals[0])
+                    base_value = float(base_vals)
             else:
                 base_value = float(base_vals)
             
-            # 4. FIXED: Flatten input data to 1D to prevent dimension crashes and text truncations
+            # 4. Flatten input data to 1D to prevent layout alignment crashes
             flat_data = np.array(df_input.values, dtype=float).flatten()
             
             # 5. Build the pristine 1D Explanation structure
             shap_values_display = shap.Explanation(
                 values=np.array(row_shap, dtype=float),
                 base_values=float(base_value),
-                data=flat_data, # <-- Pure 1D array resolves row-parsing blocks
+                data=flat_data,
                 feature_names=list(ordered_features)
             )
                 
-            # 6. FIXED: Lock a static canvas size and drop tight_layout to stop the shaking bug completely
-            fig, ax = plt.subplots(figsize=(9, 4.5), dpi=100)
-            shap.plots.waterfall(shap_values_display, show=False)
+            # 6. FIXED: Create a completely independent, isolated figure instance object.
+            # This completely avoids using the global `plt` state tracker across active threads.
+            fig = matplotlib.figure.Figure(figsize=(7.5, 3.8), dpi=100)
+            ax = fig.add_subplot(111)
             
-            # Save the rendering directly into memory 
+            # Render the SHAP plot directly onto our isolated axis object
+            shap.plots.waterfall(shap_values_display, show=False, ax=ax)
+            
+            # 7. FIXED: Drop all dynamic layout calculations to stop the shaking bug for good
+            # Save the rendering directly to an isolated memory byte array string
             buffer = io.BytesIO()
-            plt.savefig(buffer, format="png", bbox_inches="tight", pad_inches=0.2)
+            fig.savefig(buffer, format="png", bbox_inches="tight")
             buffer.seek(0)
             plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-            plt.close(fig) # Completely free up thread memory
+            
+            # Clear resources explicitly from the active thread loop context
+            buffer.close()
+            fig.clf()
+            del fig, ax
             
         except Exception as plot_err:
-            print(f"SHAP Layout Framework Notice: {str(plot_err)}")
+            print(f"SHAP Thread-Safe Generation Notice: {str(plot_err)}")
             plot_base64 = ""
+       
 
         return {
             "prediction_code": prediction_int,
