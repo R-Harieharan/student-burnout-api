@@ -89,44 +89,40 @@ def predict_performance(data: StudentDataInput):
             ):
                 prediction_int = 0
                 confidence_score = high_prob if prediction_int == 1 else standard_prob
-            else:
-                raw_pred = model.predict(df_input)
-                flat_pred = (
-                    raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
-                )
-                raw_val = (
-                    int(flat_pred[0]) if hasattr(flat_pred, "__len__") else int(flat_pred)
-                )
-                prediction_int = 1 if raw_val == 1 else 0
-                confidence_score = 1.0
-            result_label = "High" if prediction_int == 1 else "Standard"
-            # --- SHAP Explanation Generation ---
-            # Generate SHAP values for the single input row
-            shap_values = explainer(df_input)
-            # Handle probability output slicing if LightGBM returns multi-class shapes
-            if len(shap_values.shape) == 3:
-                # Slice for class index prediction_int to show factors driving this specific outcome
-                shap_values_display = shap_values[0, :, prediction_int]
-            else:
-                shap_values_display = shap_values[0]
-            # Generate a waterfall summary plot for the single prediction instance
-            plt.figure(figsize=(8, 4))
-            shap.plots.waterfall(shap_values_display, show=False)
-            plt.tight_layout()
-            # Save plot to an in-memory buffer
-            buffer = io.BytesIO()
-            plt.savefig(buffer, format="png", bbox_inches="tight")
-            buffer.seek(0)
-            plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-            plt.close()  # Clean up memory resources
-            
-            return {
-                "prediction_code": prediction_int,
-                "prediction": result_label,
-                "confidence": round(confidence_score, 4),
-                "shap_plot_base64": plot_base64,
-                "status": "Success",
-            }
+        else:
+            raw_pred = model.predict(df_input)
+            flat_pred = raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
+            raw_val = int(flat_pred[0]) if hasattr(flat_pred, "__len__") else int(flat_pred)
+            prediction_int = 1 if raw_val == 1 else 0
+            confidence_score = 1.0
+        result_label = "High" if prediction_int == 1 else "Standard"
+        # --- SHAP Explanation Generation ---
+        # Generate SHAP values for the single input row
+        shap_values = explainer(df_input)
+        # Handle probability output slicing if LightGBM returns multi-class shapes
+        if len(shap_values.shape) == 3:
+            # Slice for class index prediction_int to show factors driving this specific outcome
+            shap_values_display = shap_values[0, :, prediction_int]
+        else:
+            shap_values_display = shap_values[0]
+        # Generate a waterfall summary plot for the single prediction instance
+        plt.figure(figsize=(8, 4))
+        shap.plots.waterfall(shap_values_display, show=False)
+        plt.tight_layout()
+        # Save plot to an in-memory buffer
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format="png", bbox_inches="tight")
+        buffer.seek(0)
+        plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        plt.close()  # Clean up memory resources
+        
+        return {
+            "prediction_code": prediction_int,
+            "prediction": result_label,
+            "confidence": round(confidence_score, 4),
+            "shap_plot_base64": plot_base64,
+            "status": "Success",
+        }
     except Exception as e:
         raise HTTPException(
             status_code=500,
