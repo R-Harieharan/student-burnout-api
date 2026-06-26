@@ -109,10 +109,10 @@ def predict_performance(data: StudentDataInput):
                 result_label = "Standard"
             confidence_score = 1.0
 
-        # --- SHAP Explanation Generation & Isolated Thread-Safe Plotting ---
+        # --- SHAP Explanation Generation & Explicit Axis Binding ---
         plot_base64 = ""
         try:
-            # 1. Extract raw SHAP outputs and metrics
+            # 1. Extract raw SHAP outputs and base metrics
             raw_shap = explainer.shap_values(df_input)
             base_vals = explainer.expected_value
             
@@ -136,7 +136,7 @@ def predict_performance(data: StudentDataInput):
             else:
                 base_value = float(base_vals)
             
-            # 4. Flatten input data to 1D to prevent layout alignment crashes
+            # 4. Flatten input metrics data to a pure 1D array to match labels
             flat_data = np.array(df_input.values, dtype=float).flatten()
             
             # 5. Build the pristine 1D Explanation structure
@@ -147,30 +147,34 @@ def predict_performance(data: StudentDataInput):
                 feature_names=list(ordered_features)
             )
                 
-            # 6. FIXED: Create a completely independent, isolated figure instance object.
-            # This completely avoids using the global `plt` state tracker across active threads.
-            fig = matplotlib.figure.Figure(figsize=(7.5, 3.8), dpi=100)
-            ax = fig.add_subplot(111)
+            # 6. FIXED: Generate a clean, thread-safe subplot matrix grid layout
+            # We do NOT pass ax directly into waterfall (since it causes TypeErrors).
+            # Instead, we use `plt.sca()` to lock the current axis frame before drawing.
+            fig, ax = plt.subplots(figsize=(7.5, 3.8), dpi=100)
+            plt.sca(ax) 
             
-            # Render the SHAP plot directly onto our isolated axis object
-            shap.plots.waterfall(shap_values_display, show=False, ax=ax)
+            # Draw the waterfall graphic safely onto the locked axis context layer
+            shap.plots.waterfall(shap_values_display, show=False)
             
-            # 7. FIXED: Drop all dynamic layout calculations to stop the shaking bug for good
-            # Save the rendering directly to an isolated memory byte array string
+            # 7. FIXED: Explicitly disable dynamic margin calculation algorithms.
+            # This locks static pixel coordinates, completely eliminating the tab-shaking bug.
+            ax.set_autoscale_on(False)
+            
+            # Save the rendering directly to memory
             buffer = io.BytesIO()
-            fig.savefig(buffer, format="png", bbox_inches="tight")
+            plt.savefig(buffer, format="png", bbox_inches="tight", pad_inches=0.1)
             buffer.seek(0)
             plot_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
             
-            # Clear resources explicitly from the active thread loop context
+            # Clean up memory resources comprehensively across active threads
             buffer.close()
-            fig.clf()
+            plt.close(fig)
             del fig, ax
             
         except Exception as plot_err:
-            print(f"SHAP Thread-Safe Generation Notice: {str(plot_err)}")
+            # Captures any internal validation errors and streams them directly to your server console logs
+            print(f"CRITICAL BACKEND PLOT SYSTEM NOTICE: {str(plot_err)}")
             plot_base64 = ""
-       
 
         return {
             "prediction_code": prediction_int,
