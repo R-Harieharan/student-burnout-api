@@ -97,12 +97,20 @@ def predict_performance(data: StudentDataInput):
         not_high_prob = 0.0
 
         if hasattr(model, "predict_proba"):
+
+            prediction_int = int(model.predict(df_input)[0])
             probabilities = model.predict_proba(df_input)[0]
             # Assuming 0 is 'Not High' and 1 is 'High'
             not_high_prob = float(probabilities[0])
             high_prob = float(probabilities[1])
+
+            confidence_score = (
+                high_prob if prediction_int == 1 else not_high_prob
+            )
             
-            if high_prob > not_high_prob: # Decide based on higher probability
+            result_label = "High" if prediction_int == 1 else "Not High"
+            
+            """if high_prob > not_high_prob: # Decide based on higher probability
                 prediction_int = 1
                 result_label = "High"
                 confidence_score = high_prob
@@ -121,7 +129,7 @@ def predict_performance(data: StudentDataInput):
                 result_label = "High"
             else:
                 result_label = "Not High"
-            confidence_score = 1.0 # Cannot determine confidence without proba
+            confidence_score = 1.0 # Cannot determine confidence without proba"""
 
         # --- SHAP Explanation Generation & Custom Type-Aware Native Plotting ---
         plot_base64 = ""
