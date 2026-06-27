@@ -80,23 +80,23 @@ def predict_performance(data: StudentDataInput):
         # --- Prediction & Confidence Code ---
         if hasattr(model, "predict_proba"):
             probabilities = model.predict_proba(df_input)
-            standard_prob = float(probabilities[0][1])
+            not_high_prob = float(probabilities[0][1])
             high_prob = float(probabilities[0][0])
-            if high_prob > 0.51:
+            if high_prob > 0.62:
                 prediction_int = 1
                 result_label = "High"
                 confidence_score = high_prob
             else:
                 prediction_int = 0
-                result_label = "Standard"
-                confidence_score = standard_prob
+                result_label = "Not High"
+                confidence_score = not_high_prob
             if (
                 float(data.Skill_Retention_Score) < 50.0
                 and float(data.Anxiety_Level_During_Exams) >= 7.0
             ):
                 prediction_int = 0
-                result_label = "Standard"
-                confidence_score = standard_prob    
+                result_label = "Not High"
+                confidence_score = not_high_prob    
         else:
             raw_pred = model.predict(df_input)
             flat_pred = raw_pred.flatten() if hasattr(raw_pred, "flatten") else raw_pred
@@ -106,7 +106,7 @@ def predict_performance(data: StudentDataInput):
                 result_label = "High"
             else:
                 prediction_int = 0
-                result_label = "Standard"
+                result_label = "Not High"
             confidence_score = 1.0
 
         # --- SHAP Explanation Generation & Custom Type-Aware Native Plotting ---
@@ -186,7 +186,7 @@ def predict_performance(data: StudentDataInput):
             "prediction": result_label,
             "confidence": round(confidence_score, 4),
             "high_probability": high_prob,
-            "standard_probability": standard_prob,
+            "standard_probability": not_high_prob,
             "shap_plot_base64": plot_base64,
             "shap_values": row_shap.tolist(),
             "feature_names": ordered_features,
