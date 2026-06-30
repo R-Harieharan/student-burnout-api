@@ -1,35 +1,20 @@
-import base64
-import io
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 import joblib
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 
-# Force matplotlib to run without a GUI (Required for production servers)
-matplotlib.use("Agg")
-
 # Global variables placeholder
 model = None
-ordered_features = [
-    "Study_Balance",
-    "GPA_Difference",
-    "Skill_Retention_Score",
-    "Anxiety_Level_During_Exams",
-    "Tool_Diversity",
-]
 
 # 1. Define modern Lifespan handler for model and explainer loading
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global model, explainer
+    global model
     try:
         model = joblib.load("student_performance_lgbm_model.pkl")
     except Exception as e:
-        raise RuntimeError(f"Could not load the model or explainer file. Error: {str(e)}")
+        raise RuntimeError(f"Could not load the model. Error: {str(e)}")
     yield
     # Clean up operations can go here if needed on shutdown
 
@@ -70,50 +55,50 @@ def home():
 # 5. Create the Prediction End-point
 @app.post("/predict")
 def predict_performance(data: StudentDataInput):
-    if model is None:
-        raise HTTPException(
-            status_code=503, detail="Model is not available."
-        )
-    
-    data_dict = {
-        "Study_Balance": float(data.Study_Balance),
-        "GPA_Difference": float(data.GPA_Difference),
-        "Skill_Retention_Score": float(data.Skill_Retention_Score),
-        "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
-        "Tool_Diversity": float(data.Tool_Diversity),
-    }
-    df_input = pd.DataFrame([data_dict])[ordered_features]
-
-    # --- Prediction & Confidence Code ---
-    prediction_int = 0 # Default to Not High
-    result_label = "Not High"
-    confidence_score = 0.0
-    high_prob = 0.0
-    not_high_prob = 0.0
-
-    if hasattr(model, "predict_proba"):
-
-        prediction_int = int(model.predict(df_input)[0])
-        probabilities = model.predict_proba(df_input)[0]
-        # Assuming 0 is 'Not High' and 1 is 'High'
-        not_high_prob = float(probabilities[0])
-        high_prob = float(probabilities[1])
-
-        confidence_score = (
-            high_prob if prediction_int == 1 else not_high_prob
-        )
+    try:
+        if model is None:
+            raise HTTPException(
+                status_code=503, detail="Model is not available."
+            )
         
-        result_label = "High" if prediction_int == 1 else "Not High"
-
-        return {
-            "prediction_code": prediction_int,
-            "prediction": result_label,
-            "confidence": round(confidence_score, 4),
-            "high_probability": round(high_prob, 4),
-            "not_high_probability": round(not_high_prob, 4),
-            "feature_names": ordered_features,
-            "status": "Success",
+        data_dict = {
+            "Study_Balance": float(data.Study_Balance),
+            "GPA_Difference": float(data.GPA_Difference),
+            "Skill_Retention_Score": float(data.Skill_Retention_Score),
+            "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
+            "Tool_Diversity": float(data.Tool_Diversity),
         }
+        df_input = pd.DataFrame([data_dict])[ordered_features]
+    
+        # --- Prediction & Confidence Code ---
+        prediction_int = 0 # Default to Not High
+        result_label = "Not High"
+        confidence_score = 0.0
+        high_prob = 0.0
+        not_high_prob = 0.0
+    
+        if hasattr(model, "predict_proba"):
+    
+            prediction_int = int(model.predict(df_input)[0])
+            probabilities = model.predict_proba(df_input)[0]
+            # Assuming 0 is 'Not High' and 1 is 'High'
+            not_high_prob = float(probabilities[0])
+            high_prob = float(probabilities[1])
+    
+            confidence_score = (
+                high_prob if prediction_int == 1 else not_high_prob
+            )
+            
+            result_label = "High" if prediction_int == 1 else "Not High"
+    
+            return {
+                "prediction_code": prediction_int,
+                "prediction": result_label,
+                "confidence": round(confidence_score, 4),
+                "high_probability": round(high_prob, 4),
+                "not_high_probability": round(not_high_prob, 4),
+                "status": "Success",
+            }
     except Exception as e:
         raise HTTPException(
             status_code=500,
