@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 # 2. Initialize the FastAPI Application with lifespan
 app = FastAPI(
     title="Student Performance Prediction API",
-    description="A production-ready API with SHAP explanations to predict student outcomes.",
+    description="Production-ready API for student burnout risk prediction.
     version="1.1",
     root_path="/proxy",
     lifespan=lifespan,
@@ -68,7 +68,7 @@ def predict_performance(data: StudentDataInput):
             "Anxiety_Level_During_Exams": float(data.Anxiety_Level_During_Exams),
             "Tool_Diversity": float(data.Tool_Diversity),
         }
-        df_input = pd.DataFrame([data_dict])[ordered_features]
+        df_input = pd.DataFrame([data_dict])
     
         # --- Prediction & Confidence Code ---
         prediction_int = 0 # Default to Not High
@@ -90,15 +90,19 @@ def predict_performance(data: StudentDataInput):
             )
             
             result_label = "High" if prediction_int == 1 else "Not High"
-    
+
             return {
                 "prediction_code": prediction_int,
                 "prediction": result_label,
                 "confidence": round(confidence_score, 4),
                 "high_probability": round(high_prob, 4),
                 "not_high_probability": round(not_high_prob, 4),
-                "status": "Success",
+                "status": "Success"
             }
+
+    except HTTPException:
+        raise
+            
     except Exception as e:
         raise HTTPException(
             status_code=500,
