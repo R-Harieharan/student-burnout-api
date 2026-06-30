@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 # 2. Initialize the FastAPI Application with lifespan
 app = FastAPI(
     title="Student Performance Prediction API",
-    description="Production-ready API for student burnout risk prediction.
+    description="Production-ready API for student burnout risk prediction."
     version="1.1",
     root_path="/proxy",
     lifespan=lifespan,
