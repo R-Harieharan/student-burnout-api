@@ -1,48 +1,308 @@
----
-title: Student Burnout Prediction
-emoji: 📉
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
----
+# 🚀 Student Burnout Prediction API
 
-# Student Burnout Prediction & Dynamic API Optimization Pipeline
+A production-ready FastAPI backend serving machine learning predictions for the **Student Performance & Burnout Analytics Dashboard**.
 
-An end-to-end, production-ready machine learning pipeline and containerized FastAPI microservice built to forecast multi-class student burnout risk levels.
-
-## 🚀 Access the API
-**[Launch Live Student Burnout API Dashboard](https://huggingface.co/spaces/Harie-06/student-burnout-api)**
-
-*Use the `/docs` endpoint in the URL above to interact directly with the prediction model.*
+This REST API exposes a LightGBM classification model capable of predicting student burnout risk from engineered academic features while providing prediction confidence and probability estimates.
 
 ---
 
-## 📊 Project Overview
-This project transforms raw behavioral observation data into actionable burnout risk insights. By implementing custom Scikit-Learn estimators and gradient boosting architectures, the pipeline effectively navigates data-noise thresholds to provide stable multi-class classification.
+## Overview
 
-### Key Milestones
-- **Feature Optimization:** Reduced feature bloat to 7 high-impact variables, improving inference speed and model interpretability.
-- **Overfitting Mitigation:** Transitioned from unstable architectures to sequential Gradient Boosting (LightGBM) to ensure realistic performance.
-- **Custom Pipeline:** Engineered robust `FeatureEngineer` and `OutlierCapper` layers to handle real-world data variability.
+The API acts as the inference layer for the Student Performance & Burnout Analytics Dashboard.
 
----
+It is responsible for:
 
-## 📈 Model Performance
-| Target Metric Group | Precision | Recall | F1-Score |
-| :--- | :--- | :--- | :--- |
-| **Low Risk** | 0.51 | 0.36 | 0.43 |
-| **Medium Risk** | 0.47 | 0.67 | 0.55 |
-| **High Risk (Critical)** | 0.65 | 0.43 | 0.51 |
-| **Macro Average** | **0.54** | **0.48** | **0.50** |
+- Loading the production-trained LightGBM model
+- Validating incoming requests
+- Running real-time predictions
+- Returning prediction confidence
+- Providing probability estimates
+- Serving a documented REST API
+
+The backend is designed with modularity, reproducibility, and deployment simplicity in mind.
 
 ---
 
-## 🛠 Deployment & Local Usage
+## System Architecture
 
-### Running Locally
-To launch the FastAPI service on your local machine:
+```text
+                Client Application
+                       │
+                       ▼
+              Streamlit Dashboard
+                       │
+                 HTTP POST Request
+                       │
+                       ▼
+                FastAPI REST API
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+ Input Validation   Feature Parser   Error Handling
+        │
+        ▼
+   LightGBM Model
+        │
+        ▼
+Prediction + Probabilities
+        │
+        ▼
+ JSON Response
+```
 
-1. **Install dependencies:**
-   ```bash
-   pip install fastapi uvicorn joblib lightgbm pandas scikit-learn==1.6.1 pydantic numpy
+---
+
+# Features
+
+## REST API
+
+- FastAPI framework
+- OpenAPI documentation
+- Interactive Swagger UI
+- Typed request validation
+
+---
+
+## Machine Learning
+
+- Production LightGBM classifier
+- Joblib model serialization
+- Probability prediction
+- Confidence estimation
+
+---
+
+## Validation
+
+- Pydantic request models
+- Automatic input validation
+- Type safety
+- Structured error responses
+
+---
+
+## Deployment
+
+- Hugging Face Spaces
+- Docker compatible
+- Production inference endpoint
+
+---
+
+# Tech Stack
+
+| Category | Technology |
+|-----------|------------|
+| Language | Python |
+| API Framework | FastAPI |
+| Validation | Pydantic |
+| ML Model | LightGBM |
+| Serialization | Joblib |
+| Data Processing | Pandas |
+| Deployment | Hugging Face Spaces |
+
+---
+
+# API Workflow
+
+```text
+Client Request
+      │
+      ▼
+Pydantic Validation
+      │
+      ▼
+Feature Extraction
+      │
+      ▼
+LightGBM Prediction
+      │
+      ▼
+Probability Estimation
+      │
+      ▼
+JSON Response
+```
+
+---
+
+# Repository Structure
+
+```text
+student-burnout-api/
+
+├── app.py
+├── models/
+│   ├── student_performance_lgbm_model.pkl
+│   └── production_features_list.pkl
+│
+├── requirements.txt
+├── Dockerfile
+├── README.md
+└── ...
+```
+
+---
+
+# API Endpoint
+
+## Predict Burnout Risk
+
+```
+POST /predict
+```
+
+---
+
+## Sample Request
+
+```json
+{
+  "Study_Balance": 0.75,
+  "GPA_Difference": 0.32,
+  "Skill_Retention_Score": 0.81,
+  "Anxiety_Level_During_Exams": 0.45,
+  "Tool_Diversity": 0.60
+}
+```
+
+---
+
+## Sample Response
+
+```json
+{
+  "prediction_code": 1,
+  "prediction": "High",
+  "confidence": 0.9137,
+  "high_probability": 0.9137,
+  "not_high_probability": 0.0863,
+  "status": "Success"
+}
+```
+
+---
+
+# API Documentation
+
+Once the server is running, interactive documentation is available through Swagger.
+
+```
+/docs
+```
+
+The documentation includes
+
+- request schema
+- response schema
+- example payloads
+- endpoint testing
+
+---
+
+# Local Installation
+
+Clone the repository
+
+```bash
+git clone https://github.com/R-Harieharan/student-burnout-api.git
+```
+
+Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the API
+
+```bash
+uvicorn app:app --reload
+```
+
+The API will be available at
+
+```
+http://127.0.0.1:8000
+```
+
+---
+
+# Production Deployment
+
+The backend is deployed using **Hugging Face Spaces** and serves as the prediction engine for the Student Performance & Burnout Analytics Dashboard.
+
+---
+
+# Frontend Integration
+
+This API powers the frontend dashboard available here:
+
+**Frontend Repository**
+
+https://github.com/R-Harieharan/student-performance-burnout-dashboard
+
+The frontend communicates with this backend through REST API requests to perform real-time student burnout prediction.
+
+---
+
+# Error Handling
+
+The API returns meaningful HTTP status codes.
+
+| Status Code | Description |
+|-------------|-------------|
+| 200 | Prediction successful |
+| 400 | Invalid request |
+| 422 | Validation error |
+| 500 | Prediction pipeline failure |
+| 503 | Model unavailable |
+
+---
+
+# Model Information
+
+Production Model
+
+- Algorithm: LightGBM Classifier
+- Task: Binary Classification
+- Output: Burnout Risk Prediction
+- Probability Estimates: Enabled
+- Confidence Score: Enabled
+
+---
+
+# Future Improvements
+
+Potential future enhancements include:
+
+- Batch prediction endpoint
+- Authentication
+- API versioning
+- Request logging
+- Monitoring and metrics
+- Model version management
+- Rate limiting
+
+---
+
+# License
+
+MIT License
+
+---
+
+# Author
+
+**Harie**
+
+Computer Science Student
+
+GitHub:
+https://github.com/R-Harieharan
+
+Frontend Repository:
+https://github.com/R-Harieharan/student-performance-burnout-dashboard
+
+Hugging Face:
+https://huggingface.co/Harie-06
